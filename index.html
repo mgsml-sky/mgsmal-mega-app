@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MGSMAL Super App</title>
+    
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Firebase App & Firestore CDN SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // আপনার ফায়ারবেস কনফিগারেশন
+        const firebaseConfig = {
+            apiKey: "AIzaSyDfN-bzvkvDKH4zFMztm_PZVmRH01gL63Y",
+            authDomain: "mgs-mega-project.firebaseapp.com",
+            projectId: "mgs-mega-project",
+            storageBucket: "mgs-mega-project.firebasestorage.app",
+            messagingSenderId: "802244407572",
+            appId: "1:802244407572:web:05985d2c0dd43763269201",
+            measurementId: "G-3XK6RBP4ET"
+        };
+
+        // ফায়ারবেস এবং ফায়ারস্টোর ইনিশিয়ালাইজ করা
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // টেলিগ্রাম মিনি অ্যাপ ইনিট ও ইউজার সিঙ্ক চেক
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand(); // টেলিগ্রাম অ্যাপ ফুল স্ক্রিন করবে
+                
+                const user = tg.initDataUnsafe?.user;
+                if (user) {
+                    console.log("Telegram User Connected:", user.first_name, user.id);
+                    // ভবিষ্যতে টেলিগ্রাম ইউজারের ডাটা ফায়ারস্টোরে সেভ বা লোড করার জন্য এখানে কোড লেখা যাবে
+                }
+            }
+        });
+    </script>
+
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #1e293b;
+            --primary: #6366f1;
+            --accent: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+            --bullet-color: #f59e0b;
+            --hrm-color: #8b5cf6;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Top Header */
+        header {
+            width: 100%;
+            height: 48px;
+            padding: 0 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.98);
+            border-bottom: 1px solid #334155;
+            box-sizing: border-box;
+            z-index: 3000;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .menu-btn {
+            font-size: 22px;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            z-index: 3100;
+        }
+        .brand-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .brand-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+        .brand-subtitle {
+            font-size: 7px;
+            font-weight: bold;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .header-right-auth {
+            display: flex;
+            gap: 5px;
+        }
+        .auth-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .auth-btn.signup {
+            background: var(--accent);
+        }
+
+        /* Sub Header for Multi-Wallets */
+        .sub-header {
+            width: 100%;
+            height: 38px;
+            background: #0f172a;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            border-bottom: 1px solid #1e293b;
+            box-sizing: border-box;
+            font-size: 10px;
+            z-index: 2800;
+            overflow-x: auto;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .wallet-pill {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #334155;
+            padding: 3px 8px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .wallet-pill.usdt { color: var(--accent); }
+        .wallet-pill.bullet { color: var(--bullet-color); }
+        .wallet-pill.hrm { color: var(--hrm-color); }
+
+        /* Middle Content Area */
+        .main-content {
+            flex: 1;
+            width: 100%;
+            overflow-y: auto;
+            position: relative;
+            box-sizing: border-box;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 85px;
+            z-index: 100;
+        }
+        
+        .view-section {
+            display: none;
+            width: 100%;
+            max-width: 450px;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        .view-section.active-view {
+            display: flex;
+        }
+
+        /* Standalone Social Club Specific View Style */
+        #social-view {
+            max-width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: var(--bg-color);
+            z-index: 6000;
+            padding: 0;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .social-standalone-header {
+            width: 100%;
+            height: 50px;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            border-bottom: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            z-index: 6100;
+            box-sizing: border-box;
+        }
+
+        .social-standalone-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .social-back-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .social-body-content {
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Home Grid Cards */
+        .home-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            margin-top: 20px; 
+        }
+        .grid-card {
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            padding: 14px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+            z-index: 102;
+        }
+        .grid-card:hover {
+            border-color: var(--accent);
+        }
+        .grid-card span {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .grid-card h4 {
+            margin: 0;
+            font-size: 11px;
+            color: var(--text-main);
+        }
+
+        .supply-info {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+        .price-info {
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        /* Coin Staking Circle */
+        .coin-circle {
+            width: 75px;
+            height: 75px;
+            background: radial-gradient(circle, #3b82f6, #1d4ed8);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+            margin-bottom: 6px;
+            border: 2px solid #93c5fd;
+            overflow: hidden;
+        }
+        .coin-circle img {
+            width: 60%;
+            height: 60%;
+            object-fit: contain;
+        }
+
+        .staking-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #f1f5f9;
+            margin-bottom: 3px;
+        }
+
+        .stake-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 3px;
+            position: relative;
+            z-index: 102;
+        }
+
+        .timer-display {
+            font-size: 10px;
+            background: #1e293b;
+            padding: 3px 8px;
+            border-radius: 15px;
+            border: 1px solid #475569;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* Side Menu Drawer */
+        .side-menu {
+            position: fixed;
+            left: -280px;
+            top: 0;
+            width: 280px;
+            height: 100%;
+            background: #1e293b;
+            transition: 0.3s ease-in-out;
+            z-index: 7000;
+            padding: 15px;
+            box-sizing: border-box;
+            border-right: 1px solid #334155;
+            overflow-y: auto;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.7);
+        }
+        .side-menu.open {
+            left: 0;
+        }
+        .side-menu h3 {
+            color: var(--accent);
+            margin-top: 0;
+            font-size: 14px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 8px;
+        }
+        .menu-link {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 9px 0;
+            border-bottom: 1px solid #334155;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .menu-link:hover {
+            color: var(--accent);
+        }
+
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 55px;
+            background: #1e293b;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #334155;
+            z-index: 4000;
+            box-sizing: border-box;
+        }
+        .nav-item {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            gap: 2px;
+            flex: 1;
+            height: 100%;
+            justify-content: center;
+            z-index: 4001;
+        }
+        .nav-item span {
+            font-size: 16px;
+        }
+        .nav-item:hover, .nav-item.active {
+            color: var(--accent);
+        }
+
+        .custom-input {
+            width: 100%;
+            padding: 8px;
+            margin: 6px 0;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: white;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-container {
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            border: 1px solid #334155;
+            box-sizing: border-box;
+        }
+
+        /* Floating Tokens */
+        .floating-tokens-container {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 0 15px 0;
+            gap: 8px;
+            z-index: 2500;
+            position: relative;
+        }
+        .floating-token {
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid var(--accent);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            z-index: 2501;
+        }
+        .floating-token:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header -->
+    <header id="main-top-header">
+        <div class="header-left">
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+            <div class="brand-container">
+                <span class="brand-title">MGSMAL</span>
+                <span class="brand-subtitle">My Group Success My Life</span>
+            </div>
+        </div>
+        <div class="header-right-auth">
+            <button class="auth-btn" onclick="switchView('signin-view')">Sign In</button>
+            <button class="auth-btn signup" onclick="switchView('signup-view')">Sign Up</button>
+        </div>
+    </header>
+
+    <!-- Sub Header with Multi-Wallets -->
+    <div class="sub-header" id="main-sub-header">
+        <div class="wallet-pill usdt" onclick="switchView('wallet-usdt-view')">
+            <span>💰</span> USDT: <b id="usdt-bal">10.50</b>
+        </div>
+        <div class="wallet-pill bullet" onclick="switchView('wallet-bullet-view')">
+            <span>🟡</span> Bullet: <b id="bullet-bal-top">500</b>
+        </div>
+        <div class="wallet-pill hrm" onclick="switchView('wallet-hrm-view')">
+            <span>🟣</span> HRM: <b id="hrm-bal-top">1,000</b>
+        </div>
+    </div>
+
+    <!-- Side Menu Drawer -->
+    <div class="side-menu" id="sideMenu">
+        <h3>MGSMAL Menu</h3>
+        <a class="menu-link" onclick="switchView('home-view'); toggleMenu();">🏠 Dashboard</a>
+        <a class="menu-link" onclick="switchView('wallet-usdt-view'); toggleMenu();">💰 USDT Wallet</a>
+        <a class="menu-link" onclick="switchView('wallet-bullet-view'); toggleMenu();">🟡 Bullet Token Wallet</a>
+        <a class="menu-link" onclick="switchView('wallet-hrm-view'); toggleMenu();">🟣 HRM Token Wallet</a>
+        <a class="menu-link" onclick="switchView('deposit-view'); toggleMenu();">📥 Deposit</a>
+        <a class="menu-link" onclick="switchView('withdraw-view'); toggleMenu();">📤 Withdraw</a>
+        <a class="menu-link" onclick="switchView('referral-view'); toggleMenu();">👥 Referral Program</a>
+        <a class="menu-link" onclick="switchView('mining-view'); toggleMenu();">⛏️ Crypto Mining</a>
+        <a class="menu-link" onclick="switchView('social-view'); toggleMenu();">👥 Social Club</a>
+        <a class="menu-link" onclick="switchView('gaming-view'); toggleMenu();">🎮 Gaming Platform</a>
+        <a class="menu-link" onclick="switchView('ecommerce-view'); toggleMenu();">🛍️ E-Commerce Market</a>
+        <a class="menu-link" onclick="switchView('trading-view'); toggleMenu();">📈 Trading Platform</a>
+        <a class="menu-link" onclick="switchView('shareholder-view'); toggleMenu();">💼 Project Shareholders</a>
+        <a class="menu-link" onclick="switchView('dailytask-view'); toggleMenu();">📅 Daily Tasks</a>
+        <a class="menu-link" onclick="switchView('adsview-view'); toggleMenu();">📺 Ads View</a>
+        <a class="menu-link" onclick="switchView('profile-view'); toggleMenu();">👤 User Profile</a>
+        <a class="menu-link" onclick="switchView('admin-view'); toggleMenu();">⚙️ Admin Panel</a>
+        <a class="menu-link" onclick="switchView('settings-view'); toggleMenu();">🛠 Settings</a>
+        <a class="menu-link" onclick="toggleMenu()" style="color: var(--danger);">❌ Close Menu</a>
+    </div>
+
+    <!-- Middle Content -->
+    <div class="main-content">
+        
+        <!-- Home / Staking View -->
+        <div id="home-view" class="view-section active-view">
+            <div class="floating-tokens-container">
+                <div class="floating-token" onclick="alert('BL Token clicked!')"><span>🟢</span> BL Token</div>
+                <div class="floating-token" onclick="alert('BR Token clicked!')"><span>🔴</span> BR Token</div>
+                <div class="floating-token" onclick="alert('HRM Token clicked!')"><span>🟣</span> HRM Token</div>
+            </div>
+
+            <div class="supply-info">Total Supply: 2,500,000 BULLET</div>
+            <div class="price-info">1 Bullet = $0.012 USDT</div>
+
+            <div class="coin-circle">
+                <img id="staking-logo" src="https://cdn-icons-png.flaticon.com/512/10352/10352956.png" alt="Logo">
+            </div>
+
+            <div class="staking-title">Coin Staking Module</div>
+            <button class="stake-btn" onclick="startStaking()">Start Staking (24H)</button>
+            <div class="timer-display" id="staking-timer">Ready to Start Staking</div>
+
+            <!-- Home Grid Cards -->
+            <div class="home-grid">
+                <div class="grid-card" onclick="switchView('social-view')"><span>👥</span><h4>Social Club</h4></div>
+                <div class="grid-card" onclick="switchView('gaming-view')"><span>🎮</span><h4>Gaming Platform</h4></div>
+                <div class="grid-card" onclick="switchView('trading-view')"><span>📈</span><h4>Trading Platform</h4></div>
+                <div class="grid-card" onclick="switchView('moremining-view')"><span>🪙</span><h4>More Mining Coins</h4></div>
+            </div>
+        </div>
+
+        <!-- USDT Wallet View -->
+        <div id="wallet-usdt-view" class="view-section">
+            <h3 style="color: var(--accent);">USDT Wallet</h3>
+            <div class="form-container" style="text-align: left; font-size: 11px;">
+                <p><b>Balance:</b> <span id="usdt-detail">10.50</span> USDT</p>
+                <p><b>Network:</b> BEP20 / TRC20</p>
+                <input type="text" class="custom-input" value="0x71C...38A9" readonly>
+                <button class="stake-btn" style="width: 100%;" onclick="alert('USDT Address Copied!')">Copy Address</button>
+            </div>
+        </div>
+
+        <!-- Bullet Token Wallet View -->
+        <div id="wallet-bullet-view" class="view-section">
+            <h3 style="color: var(--bullet-color);">Bullet Token Wallet</h3>
+            <div class="form-container" style="text-align: left; font-size: 11px;">
+                <p><b>Balance:</b> <span id="bullet-detail">500</span> BULLET</p>
+                <p><b>Value in USDT:</b> $<span id="bullet-usdt-val">6.00</span></p>
+                <input type="text" class="custom-input" value="0xBULLET...99B" readonly>
+                <button class="stake-btn" style="width: 100%; background: var(--bullet-color); color: #000;" onclick="alert('Bullet Wallet Synced!')">Swap / Transfer</button>
+            </div>
+        </div>
+
+        <!-- HRM Token Wallet View -->
+        <div id="wallet-hrm-view" class="view-section">
+            <h3 style="color: var(--hrm-color);">HRM Token Wallet</h3>
+            <div class="form-container" style="text-align: left; font-size: 11px;">
+                <p><b>Balance:</b> <span id="hrm-detail">1,000</span> HRM</p>
+                <p><b>Status:</b> Active & Mined</p>
+                <input type="text" class="custom-input" value="0xHRM...45X" readonly>
+                <button class="stake-btn" style="width: 100%; background: var(--hrm-color);" onclick="alert('HRM Wallet Action Completed!')">Manage HRM</button>
+            </div>
+        </div>
+
+        <!-- More Mining Coins View -->
+        <div id="moremining-view" class="view-section">
+            <h3>More Mining Coins</h3>
+            <div class="form-container" style="text-align: left; font-size: 12px;">
+                <p>💎 <b>BL Token Balance:</b> 250 BL</p>
+                <p>🪙 <b>BR Token Balance:</b> 100 BR</p>
+                <p>🔹 <b>HRM Token Balance:</b> 1,000 HRM</p>
+                <button class="stake-btn" style="width: 100%; margin-top: 10px;" onclick="alert('Claimed!')">Claim All Coins</button>
+            </div>
+        </div>
+
+        <!-- Deposit View -->
+        <div id="deposit-view" class="view-section">
+            <h3>Deposit Funds</h3>
+            <div class="form-container">
+                <input type="number" class="custom-input" placeholder="Enter USDT Amount">
+                <button class="stake-btn" style="width: 100%;" onclick="alert('Deposit successful!')">Deposit Now</button>
+            </div>
+        </div>
+
+        <!-- Withdraw View -->
+        <div id="withdraw-view" class="view-section">
+            <h3>Withdraw Funds</h3>
+            <div class="form-container">
+                <input type="text" class="custom-input" placeholder="Enter Wallet Address">
+                <input type="number" class="custom-input" placeholder="Amount">
+                <button class="stake-btn" style="width: 100%; background: var(--accent);" onclick="alert('Withdrawal requested!')">Withdraw Now</button>
+            </div>
+        </div>
+
+        <!-- Referral View -->
+        <div id="referral-view" class="view-section">
+            <h3>Referral Program</h3>
+            <div class="form-container" style="font-size: 11px;">
+                <p>Invite friends and earn 5% commission.</p>
+                <input type="text" class="custom-input" value="https://mgsmal.app/ref/user123" readonly>
+                <button class="stake-btn" style="width: 100%;" onclick="alert('Copied!')">Copy Link</button>
+            </div>
+        </div>
+
+        <!-- Profile View -->
+        <div id="profile-view" class="view-section">
+            <h3>User Profile</h3>
+            <div class="form-container" style="text-align: left; font-size: 11px;">
+                <p><b>Name:</b> Gouranga Mondal</p>
+                <p><b>Email:</b> user@gmail.com</p>
+                <p><b>Status:</b> Active</p>
+            </div>
+        </div>
+
+        <!-- Crypto Mining View -->
+        <div id="mining-view" class="view-section">
+            <h3>Crypto Mining Hub</h3>
+            <div class="form-container">
+                <p>Mined Tokens: <span id="mined-tokens" style="color: var(--accent); font-weight: bold;">0.00</span></p>
+                <button class="stake-btn" onclick="collectMined()">Claim Tokens</button>
+            </div>
+        </div>
+
+        <!-- Standalone Social Club View (Separate Page Style) -->
+        <div id="social-view" class="view-section">
+            <div class="social-standalone-header">
+                <span class="social-standalone-title">Social Club</span>
+                <button class="social-back-btn" onclick="switchView('home-view')">← Back Home</button>
+            </div>
+
+            <div class="social-body-content">
+                <div class="form-container" style="text-align: left; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">GM</div>
+                    <div>
+                        <p style="margin: 0; font-size: 12px; font-weight: bold;">Gouranga Mondal</p>
+                        <p style="margin: 0; font-size: 9px; color: var(--text-muted);">Social Club Member</p>
+                    </div>
+                </div>
+
+                <div class="form-container" style="text-align: left; margin-bottom: 15px;">
+                    <textarea class="custom-input" rows="3" placeholder="What's on your mind in the Club?"></textarea>
+                    <div style="display: flex; gap: 8px; margin-top: 5px;">
+                        <button class="stake-btn" style="flex: 1;" onclick="alert('Post Published to Club!')">📢 Post Update</button>
+                        <button class="stake-btn" style="flex: 1; background: var(--bullet-color); color: #000;" onclick="alert('Media Uploaded!')">🖼 Add Photo/Video</button>
+                    </div>
+                </div>
+                
+                <div class="form-container" style="text-align: left; font-size: 11px; margin-bottom: 10px;">
+                    <p><b>Community Feed:</b> Welcome to Social Club! Connect with members and share updates.</p>
+                    <div style="display: flex; gap: 10px; margin-top: 8px;">
+                        <button class="stake-btn" style="padding: 3px 8px; font-size: 10px;" onclick="alert('Liked!')">👍 Like</button>
+                        <button class="stake-btn" style="padding: 3px 8px; font-size: 10px; background: var(--primary);" onclick="alert('Comment box opened!')">💬 Comment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gaming View -->
+        <div id="gaming-view" class="view-section">
+            <h3>Gaming Platform</h3>
+            <button class="stake-btn" onclick="alert('Game started!')">Spin & Win</button>
+        </div>
+
+        <!-- E-Commerce View -->
+        <div id="ecommerce-view" class="view-section">
+            <h3>E-Commerce Market</h3>
+            <div class="form-container"><p style="font-size: 12px;">Shop using tokens.</p></div>
+        </div>
+
+        <!-- Trading View -->
+        <div id="trading-view" class="view-section">
+            <h3>Trading Platform</h3>
+            <p style="font-size: 11px; color: var(--accent);">BULLET / USDT: $0.012</p>
+            <button class="stake-btn" onclick="alert('Trade placed!')">Buy / Sell</button>
+        </div>
+
+        <!-- Shareholders View -->
+        <div id="shareholder-view" class="view-section">
+            <h3>Project Shareholders</h3>
+            <div class="form-container" style="text-align: left; font-size: 11px;">
+                <p>Your Share: <b>1%</b></p>
+                <p>Monthly Dividend: <b>10.00 USDT</b></p>
+            </div>
+        </div>
+
+        <!-- Daily Tasks View -->
+        <div id="dailytask-view" class="view-section">
+            <h3>Daily Tasks</h3>
+            <div class="form-container"><button class="stake-btn" onclick="alert('Claimed!')">Claim Reward</button></div>
+        </div>
+
+        <!-- Ads View -->
+        <div id="adsview-view" class="view-section">
+            <h3>Ads View</h3>
+            <div class="form-container"><button class="stake-btn" onclick="alert('Watched!')">Watch Ad</button></div>
+        </div>
+
+        <!-- Sign In View -->
+        <div id="signin-view" class="view-section">
+            <h3>Sign In</h3>
+            <div class="form-container">
+                <input type="email" class="custom-input" placeholder="Email / Mobile">
+                <input type="password" class="custom-input" placeholder="Password">
+                <button class="stake-btn" style="width: 100%;" onclick="alert('Signed in!')">Sign In</button>
+            </div>
+        </div>
+
+        <!-- Sign Up View -->
+        <div id="signup-view" class="view-section">
+            <h3>Sign Up</h3>
+            <div class="form-container">
+                <input type="text" class="custom-input" placeholder="Full Name">
+                <input type="email" class="custom-input" placeholder="Email / Mobile">
+                <input type="password" class="custom-input" placeholder="Password">
+                <button class="stake-btn signup" style="width: 100%;" onclick="alert('Registered!')">Sign Up</button>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="admin-view" class="view-section">
+            <h3 style="color: var(--danger);">Admin Panel</h3>
+            <div class="form-container" style="text-align: left;">
+                <textarea id="broadcast-msg" class="custom-input" rows="3" placeholder="Broadcast message..."></textarea>
+                <button class="stake-btn" style="width: 100%; background: var(--danger);" onclick="alert('Sent!')">Send Broadcast</button>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settings-view" class="view-section">
+            <h3>Settings</h3>
+            <div class="form-container" style="text-align: left; font-size: 12px;">
+                <p>Dark Mode: <input type="checkbox" checked></p>
+                <button class="stake-btn" style="width: 100%; margin-top: 10px;" onclick="alert('Saved!')">Save Settings</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav" id="main-bottom-nav">
+        <button class="nav-item active" onclick="switchView('home-view')"><span>🏠</span>Home</button>
+        <button class="nav-item" onclick="switchView('deposit-view')"><span>📥</span>Deposit</button>
+        <button class="nav-item" onclick="switchView('withdraw-view')"><span>📤</span>Withdraw</button>
+        <button class="nav-item" onclick="switchView('referral-view')"><span>👥</span>Refer</button>
+        <button class="nav-item" onclick="switchView('profile-view')"><span>👤</span>Profile</button>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('sideMenu');
+            menu.classList.toggle('open');
+        }
+
+        function switchView(viewId) {
+            const views = document.querySelectorAll('.view-section');
+            views.forEach(v => v.classList.remove('active-view'));
+            
+            const targetView = document.getElementById(viewId);
+            if (targetView) {
+                targetView.classList.add('active-view');
+            }
+
+            const topHeader = document.getElementById('main-top-header');
+            const subHeader = document.getElementById('main-sub-header');
+            const bottomNav = document.getElementById('main-bottom-nav');
+
+            if (viewId === 'social-view') {
+                topHeader.style.display = 'none';
+                subHeader.style.display = 'none';
+                bottomNav.style.display = 'none';
+            } else {
+                topHeader.style.display = 'flex';
+                subHeader.style.display = 'flex';
+                bottomNav.style.display = 'flex';
+            }
+        }
+
+        let bulletBalance = parseInt(localStorage.getItem('bullet_bal')) || 500;
+        const COOLDOWN = 24 * 60 * 60 * 1000;
+
+        function updateWalletUI() {
+            document.getElementById('bullet-bal-top').innerText = bulletBalance;
+            document.getElementById('bullet-detail').innerText = bulletBalance;
+            document.getElementById('bullet-usdt-val').innerText = (bulletBalance * 0.012).toFixed(2);
+        }
+
+        function startStaking() {
+            const lastStake = localStorage.getItem('last_stake_time');
+            const now = new Date().getTime();
+
+            if (lastStake && now - parseInt(lastStake) < COOLDOWN) {
+                alert('Staking is already active! Please wait for 24 hours cooldown.');
+                return;
+            }
+
+            bulletBalance += 20; 
+            localStorage.setItem('bullet_bal', bulletBalance);
+            localStorage.setItem('last_stake_time', now);
+            
+            updateWalletUI();
+            alert('Coin Staking started! +20 Bullet added.');
+        }
+
+        let minedCount = 0;
+        function collectMined() {
+            minedCount += 1.5;
+            document.getElementById('mined-tokens').innerText = minedCount.toFixed(2);
+            alert('Claimed successfully!');
+        }
+
+        window.onload = function() {
+            updateWalletUI();
+        };
+    </script>
+</body>
+</html>
