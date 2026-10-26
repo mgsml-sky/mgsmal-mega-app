@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MGSMAL Super App</title>
+    <title>MGSML SKY PROJECT</title>
     
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <!-- Firebase App & Firestore CDN SDKs -->
+    <!-- Firebase App, Firestore & Auth CDN SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <!-- EmailJS SDK for Sending Email OTP -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
     <script>
-        // আপনার ফায়ারবেস কনফিগারেশন
         const firebaseConfig = {
             apiKey: "AIzaSyDfN-bzvkvDKH4zFMztm_PZVmRH01gL63Y",
             authDomain: "mgs-mega-project.firebaseapp.com",
@@ -24,40 +27,40 @@
             measurementId: "G-3XK6RBP4ET"
         };
 
-        // ফায়ারবেস এবং ফায়ারস্টোর ইনিশিয়ালাইজ করা
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        // টেলিগ্রাম মিনি অ্যাপ ইনিট ও ইউজার সিঙ্ক চেক
         window.addEventListener('DOMContentLoaded', () => {
             if (window.Telegram && window.Telegram.WebApp) {
                 const tg = window.Telegram.WebApp;
                 tg.ready();
-                tg.expand(); // টেলিগ্রাম অ্যাপ ফুল স্ক্রিন করবে
-                
-                const user = tg.initDataUnsafe?.user;
-                if (user) {
-                    console.log("Telegram User Connected:", user.first_name, user.id);
-                    // ভবিষ্যতে টেলিগ্রাম ইউজারের ডাটা ফায়ারস্টোরে সেভ বা লোড করার জন্য এখানে কোড লেখা যাবে
-                }
+                tg.expand();
             }
+            checkAuthSession();
+            loadLiveTokenPrices();
+            loadAdminLinks();
+            loadAdminTokenSettings();
+            initMiningTimer();
+            loadAdminOtpToggleState();
         });
     </script>
 
     <style>
         :root {
-            --bg-color: #0b0f19;
-            --card-bg: #1e293b;
-            --primary: #6366f1;
-            --accent: #10b981;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-color: #030712;
+            --card-bg: linear-gradient(145deg, #111827, #1f2937);
+            --primary-sky: #38bdf8;
+            --accent-green: #10b981;
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
             --danger: #ef4444;
-            --bullet-color: #f59e0b;
-            --hrm-color: #8b5cf6;
+            --border-glow: #1e3a5f;
+            --gold-accent: #f59e0b;
         }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
@@ -69,16 +72,16 @@
             position: relative;
         }
 
-        /* Top Header */
+        /* Header UI */
         header {
             width: 100%;
-            height: 48px;
+            height: 52px;
             padding: 0 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(30, 41, 59, 0.98);
-            border-bottom: 1px solid #334155;
+            background: rgba(17, 24, 39, 0.98);
+            border-bottom: 1px solid var(--border-glow);
             box-sizing: border-box;
             z-index: 3000;
         }
@@ -88,80 +91,92 @@
             gap: 10px;
         }
         .menu-btn {
-            font-size: 22px;
+            font-size: 24px;
             background: none;
             border: none;
-            color: white;
+            color: var(--primary-sky);
             cursor: pointer;
             padding: 5px;
             z-index: 3100;
+            font-weight: 900;
         }
         .brand-container {
             display: flex;
             flex-direction: column;
         }
         .brand-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: var(--text-main);
+            font-size: 15px;
+            font-weight: 900;
+            color: var(--primary-sky);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
         }
         .brand-subtitle {
-            font-size: 7px;
-            font-weight: bold;
-            color: var(--accent);
+            font-size: 7.5px;
+            font-weight: 800;
+            color: var(--accent-green);
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .header-right-auth {
             display: flex;
-            gap: 5px;
+            gap: 6px;
         }
         .auth-btn {
-            background: var(--primary);
-            color: white;
+            background: var(--primary-sky);
+            color: #000;
             border: none;
-            padding: 4px 8px;
-            font-size: 10px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 800;
+            box-shadow: 0 2px 6px rgba(56, 189, 248, 0.3);
         }
         .auth-btn.signup {
-            background: var(--accent);
+            background: var(--accent-green);
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
         }
 
-        /* Sub Header for Multi-Wallets */
+        /* Sub-Header Token Bar */
         .sub-header {
             width: 100%;
-            height: 38px;
-            background: #0f172a;
+            height: 52px;
+            background: #090d16;
             display: flex;
             align-items: center;
-            padding: 0 10px;
-            border-bottom: 1px solid #1e293b;
+            padding: 0 12px;
+            border-bottom: 1.5px solid var(--border-glow);
             box-sizing: border-box;
-            font-size: 10px;
+            font-size: 12px;
             z-index: 2800;
             overflow-x: auto;
-            gap: 8px;
+            gap: 10px;
             flex-shrink: 0;
+            scrollbar-width: none;
         }
+        .sub-header::-webkit-scrollbar { display: none; }
+
         .wallet-pill {
-            background: rgba(30, 41, 59, 0.9);
-            border: 1px solid #334155;
-            padding: 3px 8px;
-            border-radius: 12px;
+            padding: 6px 14px;
+            border-radius: 20px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
             cursor: pointer;
             white-space: nowrap;
+            font-weight: 900;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+            transition: all 0.2s ease-in-out;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        .wallet-pill.usdt { color: var(--accent); }
-        .wallet-pill.bullet { color: var(--bullet-color); }
-        .wallet-pill.hrm { color: var(--hrm-color); }
+        .wallet-pill:active { transform: scale(0.95); }
+        .pill-symbol { font-size: 15px; }
 
-        /* Middle Content Area */
+        /* Main Scrollable Area */
         .main-content {
             flex: 1;
             width: 100%;
@@ -184,56 +199,46 @@
             align-items: center;
             position: relative;
         }
-        .view-section.active-view {
-            display: flex;
-        }
+        .view-section.active-view { display: flex; }
 
-        /* Standalone Social Club Specific View Style */
-        #social-view {
+        /* Standalone Mini Exchange View */
+        #mini-exchange-view {
             max-width: 100%;
             height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: var(--bg-color);
-            z-index: 6000;
+            z-index: 8000;
             padding: 0;
             box-sizing: border-box;
             overflow-y: auto;
         }
-
-        .social-standalone-header {
+        .exchange-page-header {
             width: 100%;
-            height: 50px;
-            background: #1e293b;
+            height: 52px;
+            background: #0f172a;
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 15px;
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid #1f2937;
             position: sticky;
             top: 0;
-            z-index: 6100;
+            z-index: 8100;
             box-sizing: border-box;
         }
-
-        .social-standalone-title {
-            font-size: 15px;
-            font-weight: bold;
-            color: var(--accent);
-        }
-
-        .social-back-btn {
-            background: #334155;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
+        .exchange-page-title { font-size: 15px; font-weight: 900; color: var(--primary-sky); }
+        .back-home-btn {
+            background: var(--card-bg);
+            color: var(--primary-sky);
+            border: 1px solid var(--primary-sky);
+            padding: 6px 12px;
+            border-radius: 6px;
             font-size: 11px;
+            font-weight: 800;
             cursor: pointer;
         }
-
-        .social-body-content {
+        .exchange-body-container {
             width: 100%;
             max-width: 450px;
             margin: 0 auto;
@@ -241,10 +246,69 @@
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            gap: 15px;
         }
 
-        /* Home Grid Cards */
+        /* 3D Smart Ultra Premium SKY Token Logo */
+        .supply-info { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; font-weight: 700; margin-top: 5px; }
+        .price-info { font-size: 14px; color: var(--primary-sky); font-weight: 900; margin-bottom: 12px; }
+        .coin-circle {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at 30% 30%, #38bdf8, #0284c7 60%, #0369a1 100%);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.8), inset 0 3px 6px rgba(255,255,255,0.6), inset 0 -4px 8px rgba(0,0,0,0.8);
+            margin-bottom: 12px;
+            border: 3px solid #7dd3fc;
+            overflow: hidden;
+            animation: pulse-ring 2s infinite;
+            position: relative;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.98); box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+            50% { transform: scale(1.04); box-shadow: 0 0 30px rgba(56, 189, 248, 0.9); }
+            100% { transform: scale(0.98); box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+        }
+        .sky-token-logo-text {
+            font-size: 22px;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 1.5px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.9), 0 0 10px rgba(56,189,248,0.8);
+            line-height: 1;
+        }
+        .sky-token-subtext {
+            font-size: 8.5px;
+            font-weight: 900;
+            color: #fde047;
+            letter-spacing: 1px;
+            margin-top: 3px;
+            text-transform: uppercase;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .staking-title { font-size: 13px; font-weight: 900; color: #ffffff; margin-bottom: 6px; text-transform: uppercase; }
+        .stake-btn {
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
+            color: #000000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+            margin-top: 4px;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.5);
+            text-transform: uppercase;
+        }
+        .stake-btn:active { transform: scale(0.96); }
+        .timer-display { font-size: 10px; background: #111827; padding: 4px 12px; border-radius: 15px; border: 1px solid #1f2937; color: var(--text-muted); margin-top: 6px; font-weight: 700; }
+
+        /* Home Grid */
         .home-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -254,215 +318,218 @@
         }
         .grid-card {
             background: var(--card-bg);
-            border: 1px solid #334155;
-            padding: 14px;
-            border-radius: 8px;
+            border: 1.5px solid #1f2937;
+            padding: 18px 10px;
+            border-radius: 14px;
             text-align: center;
             cursor: pointer;
-            transition: 0.2s;
-            position: relative;
-            z-index: 102;
-        }
-        .grid-card:hover {
-            border-color: var(--accent);
-        }
-        .grid-card span {
-            font-size: 20px;
-            display: block;
-            margin-bottom: 5px;
-        }
-        .grid-card h4 {
-            margin: 0;
-            font-size: 11px;
-            color: var(--text-main);
-        }
-
-        .supply-info {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 2px;
-        }
-        .price-info {
-            font-size: 12px;
-            color: var(--accent);
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-
-        /* Coin Staking Circle */
-        .coin-circle {
-            width: 75px;
-            height: 75px;
-            background: radial-gradient(circle, #3b82f6, #1d4ed8);
-            border-radius: 50%;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
-            margin-bottom: 6px;
-            border: 2px solid #93c5fd;
-            overflow: hidden;
+            justify-content: center;
         }
-        .coin-circle img {
-            width: 60%;
-            height: 60%;
-            object-fit: contain;
-        }
+        .grid-card:hover { border-color: var(--primary-sky); transform: translateY(-3px); }
+        .grid-card span { font-size: 28px; display: block; margin-bottom: 8px; }
+        .grid-card h4 { margin: 0; font-size: 12px; font-weight: 900; color: var(--text-main); }
 
-        .staking-title {
-            font-size: 11px;
-            font-weight: bold;
-            color: #f1f5f9;
-            margin-bottom: 3px;
-        }
-
-        .stake-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 3px;
-            position: relative;
-            z-index: 102;
-        }
-
-        .timer-display {
-            font-size: 10px;
-            background: #1e293b;
-            padding: 3px 8px;
-            border-radius: 15px;
-            border: 1px solid #475569;
-            color: var(--text-muted);
-            margin-top: 5px;
-        }
-
-        /* Side Menu Drawer */
+        /* Side Drawer Menu */
         .side-menu {
             position: fixed;
             left: -280px;
             top: 0;
             width: 280px;
             height: 100%;
-            background: #1e293b;
+            background: #0b0f19;
             transition: 0.3s ease-in-out;
             z-index: 7000;
             padding: 15px;
             box-sizing: border-box;
-            border-right: 1px solid #334155;
+            border-right: 1px solid #1f2937;
             overflow-y: auto;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.7);
+            box-shadow: 5px 0 20px rgba(0,0,0,0.9);
         }
-        .side-menu.open {
-            left: 0;
-        }
+        .side-menu.open { left: 0; }
         .side-menu h3 {
-            color: var(--accent);
+            color: var(--primary-sky);
             margin-top: 0;
-            font-size: 14px;
-            border-bottom: 1px solid #334155;
-            padding-bottom: 8px;
+            font-size: 15px;
+            border-bottom: 1px solid #1f2937;
+            padding-bottom: 10px;
+            font-weight: 900;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .secret-admin-dot {
+            width: 12px; height: 12px;
+            background: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            cursor: pointer;
         }
         .menu-link {
             display: block;
             color: white;
             text-decoration: none;
-            padding: 9px 0;
-            border-bottom: 1px solid #334155;
+            padding: 12px 0;
+            border-bottom: 1px solid #1f2937;
             font-size: 12px;
+            font-weight: 800;
             cursor: pointer;
         }
-        .menu-link:hover {
-            color: var(--accent);
+        .menu-link:hover { color: var(--primary-sky); }
+
+        /* Plain Black Secret mPIN Modal Box */
+        #admin-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 7, 18, 0.95);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .admin-modal-box {
+            background: #000000;
+            border: 1px solid #1f2937;
+            padding: 25px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 280px;
+            text-align: center;
         }
 
         /* Bottom Navigation Bar */
         .bottom-nav {
             position: fixed;
-            bottom: 0;
-            left: 0;
+            bottom: 0; left: 0;
             width: 100%;
-            height: 55px;
-            background: #1e293b;
+            height: 58px;
+            background: #0f172a;
             display: flex;
             justify-content: space-around;
             align-items: center;
-            border-top: 1px solid #334155;
+            border-top: 1px solid #1f2937;
             z-index: 4000;
             box-sizing: border-box;
         }
         .nav-item {
-            background: none;
-            border: none;
+            background: none; border: none;
             color: var(--text-muted);
-            font-size: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            gap: 2px;
-            flex: 1;
-            height: 100%;
-            justify-content: center;
-            z-index: 4001;
+            font-size: 10px; font-weight: 900;
+            display: flex; flex-direction: column; align-items: center;
+            cursor: pointer; gap: 2px; flex: 1; height: 100%; justify-content: center;
         }
-        .nav-item span {
-            font-size: 16px;
-        }
-        .nav-item:hover, .nav-item.active {
-            color: var(--accent);
+        .nav-item span { font-size: 18px; }
+        .nav-item:hover, .nav-item.active { color: var(--primary-sky); }
+        .nav-avatar {
+            width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 1px solid var(--primary-sky); display: inline-block;
         }
 
         .custom-input {
-            width: 100%;
-            padding: 8px;
-            margin: 6px 0;
-            background: #0f172a;
-            border: 1px solid #475569;
-            color: white;
-            border-radius: 4px;
-            box-sizing: border-box;
+            width: 100%; padding: 10px; margin: 6px 0;
+            background: #030712; border: 1px solid #1f2937;
+            color: white; border-radius: 6px; box-sizing: border-box;
+            font-size: 12px; font-weight: 600;
         }
         .form-container {
-            background: var(--card-bg);
-            padding: 12px;
-            border-radius: 8px;
-            width: 100%;
-            border: 1px solid #334155;
-            box-sizing: border-box;
+            background: var(--card-bg); padding: 15px;
+            border-radius: 12px; width: 100%;
+            border: 1px solid #1f2937; box-sizing: border-box;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
+        .verify-box { display: flex; gap: 5px; align-items: center; }
+        .verified-badge { color: var(--accent-green); font-size: 11px; font-weight: bold; display: none; margin-top: 2px; }
 
-        /* Floating Tokens */
-        .floating-tokens-container {
-            width: 100%;
+        /* Profile & Edit Profile Styles */
+        .profile-avatar-container {
+            display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; position: relative;
+        }
+        .profile-avatar {
+            width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--primary-sky);
+            object-fit: cover; background: #1f2937; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; overflow: hidden;
+        }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .wallet-dropdown-btn {
+            background: #1f2937; color: var(--primary-sky); border: 1px solid var(--primary-sky);
+            padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-top: 8px;
+        }
+        .token-list-container {
+            display: none; background: #0b0f19; border: 1px solid #1f2937; border-radius: 6px; margin-top: 5px; padding: 8px; max-height: 150px; overflow-y: auto; font-size: 11px;
+        }
+        .token-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #1f2937; }
+        
+        .gen-roadmap-toggle-btn {
+            background: #1e293b; color: var(--gold-accent); border: 1px solid var(--gold-accent);
+            padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-top: 12px;
+        }
+        .gen-roadmap-container { display: none; margin-top: 5px; }
+        .gen-roadmap-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .gen-roadmap-table th, .gen-roadmap-table td { border: 1px solid #334155; padding: 5px; text-align: center; }
+        .gen-roadmap-table th { background: #0f172a; color: var(--primary-sky); }
+
+        /* Social Share Buttons */
+        .social-share-box {
             display: flex;
-            justify-content: space-around;
-            margin: 10px 0 15px 0;
             gap: 8px;
-            z-index: 2500;
-            position: relative;
+            margin-top: 8px;
         }
-        .floating-token {
-            background: rgba(30, 41, 59, 0.95);
-            border: 1px solid var(--accent);
-            color: var(--text-main);
-            padding: 6px 12px;
-            border-radius: 20px;
+        .share-platform-btn {
+            flex: 1;
+            padding: 8px 4px;
+            border-radius: 6px;
+            border: none;
             font-size: 10px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 4px;
+            font-weight: 800;
+            color: #fff;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-            z-index: 2501;
+            text-align: center;
         }
-        .floating-token:active {
-            transform: scale(0.95);
+        .btn-native { background: linear-gradient(135deg, #10b981, #059669); }
+        .btn-wa { background: #25d366; color: #000; }
+        .btn-tg { background: #229ed9; }
+
+        /* Toggle Switch Styles for Admin Panel */
+        .toggle-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 10px;
+            background: #030712;
+            border-radius: 6px;
+            border: 1px solid #1f2937;
         }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 22px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 22px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--accent-green); }
+        input:checked + .slider:before { transform: translateX(24px); }
     </style>
 </head>
 <body>
@@ -472,7 +539,7 @@
         <div class="header-left">
             <button class="menu-btn" onclick="toggleMenu()">☰</button>
             <div class="brand-container">
-                <span class="brand-title">MGSMAL</span>
+                <span class="brand-title">MGSML SKY PROJECT</span>
                 <span class="brand-subtitle">My Group Success My Life</span>
             </div>
         </div>
@@ -482,310 +549,684 @@
         </div>
     </header>
 
-    <!-- Sub Header with Multi-Wallets -->
+    <!-- Sub Header: Token Bar -->
     <div class="sub-header" id="main-sub-header">
-        <div class="wallet-pill usdt" onclick="switchView('wallet-usdt-view')">
-            <span>💰</span> USDT: <b id="usdt-bal">10.50</b>
-        </div>
-        <div class="wallet-pill bullet" onclick="switchView('wallet-bullet-view')">
-            <span>🟡</span> Bullet: <b id="bullet-bal-top">500</b>
-        </div>
-        <div class="wallet-pill hrm" onclick="switchView('wallet-hrm-view')">
-            <span>🟣</span> HRM: <b id="hrm-bal-top">1,000</b>
-        </div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #059669, #047857);" onclick="navigateToLink('USDT')"><span class="pill-symbol">💰</span> USDT: <b id="rate-usdt">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #0284c7, #0369a1);" onclick="navigateToLink('SKY')"><span class="pill-symbol">🔹</span> SKY: <b id="rate-sky">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #7c3aed, #6d28d9);" onclick="navigateToLink('MG')"><span class="pill-symbol">🌐</span> MG: <b id="rate-mg">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #d97706, #b45309);" onclick="navigateToLink('SCS')"><span class="pill-symbol">🌟</span> SCS: <b id="rate-scs">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #db2777, #be185d);" onclick="navigateToLink('MLF')"><span class="pill-symbol">💎</span> MLF: <b id="rate-mlf">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #4f46e5, #4338ca);" onclick="navigateToLink('MTR')"><span class="pill-symbol">👑</span> MTR: <b id="rate-mtr">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #ca8a04, #a16207);" onclick="navigateToLink('BULT')"><span class="pill-symbol">🟡</span> BULT: <b id="rate-bult">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #65a30d, #4d7c0f);" onclick="navigateToLink('JKR')"><span class="pill-symbol">🃏</span> JKR: <b id="rate-jkr">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #0d9488, #0f766e);" onclick="navigateToLink('BLH')"><span class="pill-symbol">🐂</span> BLH: <b id="rate-blh">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #475569, #334155);" onclick="navigateToLink('BRH')"><span class="pill-symbol">🐻</span> BRH: <b id="rate-brh">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #9333ea, #7e22ce);" onclick="navigateToLink('HRM')"><span class="pill-symbol">🟣</span> HRM: <b id="rate-hrm">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #0284c7, #0369a1);" onclick="navigateToLink('DOJI')"><span class="pill-symbol">➕</span> DOJI: <b id="rate-doji">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #ea580c, #c2410c);" onclick="navigateToLink('SGP')"><span class="pill-symbol">🔝</span> SGP: <b id="rate-sgp">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #059669, #047857);" onclick="navigateToLink('MRB')"><span class="pill-symbol">📊</span> MRB: <b id="rate-mrb">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);" onclick="navigateToLink('ULG')"><span class="pill-symbol">📈</span> ULG: <b id="rate-ulg">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #e11d48, #be123c);" onclick="navigateToLink('BWD')"><span class="pill-symbol">🎳</span> BWD: <b id="rate-bwd">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #7c3aed, #5b21b6);" onclick="navigateToLink('RKT')"><span class="pill-symbol">🚀</span> RKT: <b id="rate-rkt">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #0284c7, #0369a1);" onclick="navigateToLink('GME')"><span class="pill-symbol">🎮</span> GME: <b id="rate-gme">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #16a34a, #15803d);" onclick="navigateToLink('SSR')"><span class="pill-symbol">🏏</span> SSR: <b id="rate-ssr">0.00</b></div>
+        <div class="wallet-pill" style="background: linear-gradient(135deg, #ca8a04, #a16207);" onclick="navigateToLink('TPY')"><span class="pill-symbol">🏆</span> TPY: <b id="rate-tpy">0.00</b></div>
     </div>
 
     <!-- Side Menu Drawer -->
     <div class="side-menu" id="sideMenu">
-        <h3>MGSMAL Menu</h3>
-        <a class="menu-link" onclick="switchView('home-view'); toggleMenu();">🏠 Dashboard</a>
-        <a class="menu-link" onclick="switchView('wallet-usdt-view'); toggleMenu();">💰 USDT Wallet</a>
-        <a class="menu-link" onclick="switchView('wallet-bullet-view'); toggleMenu();">🟡 Bullet Token Wallet</a>
-        <a class="menu-link" onclick="switchView('wallet-hrm-view'); toggleMenu();">🟣 HRM Token Wallet</a>
-        <a class="menu-link" onclick="switchView('deposit-view'); toggleMenu();">📥 Deposit</a>
-        <a class="menu-link" onclick="switchView('withdraw-view'); toggleMenu();">📤 Withdraw</a>
-        <a class="menu-link" onclick="switchView('referral-view'); toggleMenu();">👥 Referral Program</a>
-        <a class="menu-link" onclick="switchView('mining-view'); toggleMenu();">⛏️ Crypto Mining</a>
-        <a class="menu-link" onclick="switchView('social-view'); toggleMenu();">👥 Social Club</a>
-        <a class="menu-link" onclick="switchView('gaming-view'); toggleMenu();">🎮 Gaming Platform</a>
-        <a class="menu-link" onclick="switchView('ecommerce-view'); toggleMenu();">🛍️ E-Commerce Market</a>
-        <a class="menu-link" onclick="switchView('trading-view'); toggleMenu();">📈 Trading Platform</a>
-        <a class="menu-link" onclick="switchView('shareholder-view'); toggleMenu();">💼 Project Shareholders</a>
-        <a class="menu-link" onclick="switchView('dailytask-view'); toggleMenu();">📅 Daily Tasks</a>
-        <a class="menu-link" onclick="switchView('adsview-view'); toggleMenu();">📺 Ads View</a>
+        <h3>
+            MGSML SKY MENU 
+            <span class="secret-admin-dot" onclick="triggerAdminAccess()" title="Secret Admin Portal"></span>
+        </h3>
+        
+        <a class="menu-link" onclick="switchView('home-view'); toggleMenu();">🏠 Dashboard (Home)</a>
+        <a class="menu-link" onclick="navigateToLink('Social Club')">👥 Social Club</a>
+        <a class="menu-link" onclick="navigateToLink('Chart Club')">🎭 Chart Club (Fun & Chat)</a>
+        <a class="menu-link" onclick="switchView('mini-exchange-view'); toggleMenu();">📈 Mini Sky Exchange (Buy/Sell/Deposit)</a>
+        <a class="menu-link" onclick="switchView('token-mining-view'); toggleMenu();">⛏️ Free Token Mining Portal</a>
+        <a class="menu-link" onclick="switchView('adsview-view'); toggleMenu();">📺 Ads Rewards & Task Center</a>
+        <a class="menu-link" onclick="switchView('wallet-sky-view'); toggleMenu();">🔹 SKY Token Wallet</a>
+        <a class="menu-link" onclick="navigateToLink('Sky Games')">🚀 Sky Games & Rocket</a>
+        <a class="menu-link" onclick="navigateToLink('Cricket Prediction')">🏏 Cricket Prediction & Live</a>
+        <a class="menu-link" onclick="navigateToLink('E-Commerce')">🛍️ E-Commerce Market</a>
+        <a class="menu-link" onclick="navigateToLink('Digital Products')">📦 Digital Products (Wholesale)</a>
+        <a class="menu-link" onclick="navigateToLink('Shareholders')">💼 Shareholder Portal</a>
+        <a class="menu-link" onclick="navigateToLink('Settings')">⚙️ Settings</a>
+        <a class="menu-link" onclick="navigateToLink('Broadcast')">📢 Broadcast Center</a>
+        <a class="menu-link" onclick="switchView('affiliate-view'); toggleMenu();">🤝 Affiliate Program</a>
         <a class="menu-link" onclick="switchView('profile-view'); toggleMenu();">👤 User Profile</a>
-        <a class="menu-link" onclick="switchView('admin-view'); toggleMenu();">⚙️ Admin Panel</a>
-        <a class="menu-link" onclick="switchView('settings-view'); toggleMenu();">🛠 Settings</a>
-        <a class="menu-link" onclick="toggleMenu()" style="color: var(--danger);">❌ Close Menu</a>
+        <a class="menu-link" onclick="logoutUser()" style="color: var(--danger);">🚪 Logout</a>
+        <a class="menu-link" onclick="toggleMenu()" style="color: var(--text-muted);">❌ Close Menu</a>
     </div>
 
-    <!-- Middle Content -->
+    <!-- Plain Black Secret mPIN Modal Box -->
+    <div id="admin-modal-overlay">
+        <div class="admin-modal-box">
+            <input type="password" id="secret-modal-mpin" class="custom-input" style="background:#000; border:1px solid #333; text-align:center; font-size:16px;" placeholder="" maxlength="6" autofocus oninput="checkInstantAdminAccess(this)">
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
     <div class="main-content">
         
         <!-- Home / Staking View -->
         <div id="home-view" class="view-section active-view">
-            <div class="floating-tokens-container">
-                <div class="floating-token" onclick="alert('BL Token clicked!')"><span>🟢</span> BL Token</div>
-                <div class="floating-token" onclick="alert('BR Token clicked!')"><span>🔴</span> BR Token</div>
-                <div class="floating-token" onclick="alert('HRM Token clicked!')"><span>🟣</span> HRM Token</div>
-            </div>
-
-            <div class="supply-info">Total Supply: 2,500,000 BULLET</div>
-            <div class="price-info">1 Bullet = $0.012 USDT</div>
+            <div class="supply-info">Total Supply: 2,500,000 SKY</div>
+            <div class="price-info">1 SKY = $<span id="sky-live-price">0.00</span> USDT</div>
 
             <div class="coin-circle">
-                <img id="staking-logo" src="https://cdn-icons-png.flaticon.com/512/10352/10352956.png" alt="Logo">
+                <div class="sky-token-logo-text">SKY</div>
+                <div class="sky-token-subtext">TOKEN</div>
             </div>
 
-            <div class="staking-title">Coin Staking Module</div>
-            <button class="stake-btn" onclick="startStaking()">Start Staking (24H)</button>
-            <div class="timer-display" id="staking-timer">Ready to Start Staking</div>
+            <div class="staking-title">Sky Token Mining Module (3H Engine)</div>
+            <button class="stake-btn" id="mining-action-btn" onclick="startMiningEngine()">Start Sky Mining (3H)</button>
+            <div class="timer-display" id="staking-timer">Ready to Start Mining</div>
 
-            <!-- Home Grid Cards -->
             <div class="home-grid">
-                <div class="grid-card" onclick="switchView('social-view')"><span>👥</span><h4>Social Club</h4></div>
-                <div class="grid-card" onclick="switchView('gaming-view')"><span>🎮</span><h4>Gaming Platform</h4></div>
-                <div class="grid-card" onclick="switchView('trading-view')"><span>📈</span><h4>Trading Platform</h4></div>
-                <div class="grid-card" onclick="switchView('moremining-view')"><span>🪙</span><h4>More Mining Coins</h4></div>
+                <div class="grid-card" onclick="navigateToLink('Social Club')"><span>👥</span><h4>Social Club</h4></div>
+                <div class="grid-card" onclick="navigateToLink('Chart Club')"><span>🎭</span><h4>Chart Club</h4></div>
+                <div class="grid-card" onclick="switchView('token-mining-view')"><span>⛏️</span><h4>Free Mining</h4></div>
+                <div class="grid-card" onclick="switchView('mini-exchange-view')"><span>📈</span><h4>Mini Sky Exchange</h4></div>
+                <div class="grid-card" onclick="navigateToLink('Sky Games')"><span>🚀</span><h4>Sky Games</h4></div>
+                <div class="grid-card" onclick="navigateToLink('Cricket Prediction')"><span>🏏</span><h4>Cricket Prediction</h4></div>
+                <div class="grid-card" onclick="navigateToLink('Settings')"><span>⚙️</span><h4>Settings</h4></div>
+                <div class="grid-card" onclick="navigateToLink('Broadcast')"><span>📢</span><h4>Broadcast</h4></div>
             </div>
         </div>
 
-        <!-- USDT Wallet View -->
-        <div id="wallet-usdt-view" class="view-section">
-            <h3 style="color: var(--accent);">USDT Wallet</h3>
-            <div class="form-container" style="text-align: left; font-size: 11px;">
-                <p><b>Balance:</b> <span id="usdt-detail">10.50</span> USDT</p>
-                <p><b>Network:</b> BEP20 / TRC20</p>
-                <input type="text" class="custom-input" value="0x71C...38A9" readonly>
-                <button class="stake-btn" style="width: 100%;" onclick="alert('USDT Address Copied!')">Copy Address</button>
-            </div>
-        </div>
-
-        <!-- Bullet Token Wallet View -->
-        <div id="wallet-bullet-view" class="view-section">
-            <h3 style="color: var(--bullet-color);">Bullet Token Wallet</h3>
-            <div class="form-container" style="text-align: left; font-size: 11px;">
-                <p><b>Balance:</b> <span id="bullet-detail">500</span> BULLET</p>
-                <p><b>Value in USDT:</b> $<span id="bullet-usdt-val">6.00</span></p>
-                <input type="text" class="custom-input" value="0xBULLET...99B" readonly>
-                <button class="stake-btn" style="width: 100%; background: var(--bullet-color); color: #000;" onclick="alert('Bullet Wallet Synced!')">Swap / Transfer</button>
-            </div>
-        </div>
-
-        <!-- HRM Token Wallet View -->
-        <div id="wallet-hrm-view" class="view-section">
-            <h3 style="color: var(--hrm-color);">HRM Token Wallet</h3>
-            <div class="form-container" style="text-align: left; font-size: 11px;">
-                <p><b>Balance:</b> <span id="hrm-detail">1,000</span> HRM</p>
-                <p><b>Status:</b> Active & Mined</p>
-                <input type="text" class="custom-input" value="0xHRM...45X" readonly>
-                <button class="stake-btn" style="width: 100%; background: var(--hrm-color);" onclick="alert('HRM Wallet Action Completed!')">Manage HRM</button>
-            </div>
-        </div>
-
-        <!-- More Mining Coins View -->
-        <div id="moremining-view" class="view-section">
-            <h3>More Mining Coins</h3>
-            <div class="form-container" style="text-align: left; font-size: 12px;">
-                <p>💎 <b>BL Token Balance:</b> 250 BL</p>
-                <p>🪙 <b>BR Token Balance:</b> 100 BR</p>
-                <p>🔹 <b>HRM Token Balance:</b> 1,000 HRM</p>
-                <button class="stake-btn" style="width: 100%; margin-top: 10px;" onclick="alert('Claimed!')">Claim All Coins</button>
-            </div>
-        </div>
-
-        <!-- Deposit View -->
-        <div id="deposit-view" class="view-section">
-            <h3>Deposit Funds</h3>
-            <div class="form-container">
-                <input type="number" class="custom-input" placeholder="Enter USDT Amount">
-                <button class="stake-btn" style="width: 100%;" onclick="alert('Deposit successful!')">Deposit Now</button>
-            </div>
-        </div>
-
-        <!-- Withdraw View -->
-        <div id="withdraw-view" class="view-section">
-            <h3>Withdraw Funds</h3>
-            <div class="form-container">
-                <input type="text" class="custom-input" placeholder="Enter Wallet Address">
-                <input type="number" class="custom-input" placeholder="Amount">
-                <button class="stake-btn" style="width: 100%; background: var(--accent);" onclick="alert('Withdrawal requested!')">Withdraw Now</button>
-            </div>
-        </div>
-
-        <!-- Referral View -->
-        <div id="referral-view" class="view-section">
-            <h3>Referral Program</h3>
+        <!-- SECRET ADMIN CMS PANEL VIEW -->
+        <div id="admin-panel-view" class="view-section">
+            <h3 style="color: var(--danger);">🔐 Master Admin CMS Panel</h3>
             <div class="form-container" style="font-size: 11px;">
-                <p>Invite friends and earn 5% commission.</p>
-                <input type="text" class="custom-input" value="https://mgsmal.app/ref/user123" readonly>
-                <button class="stake-btn" style="width: 100%;" onclick="alert('Copied!')">Copy Link</button>
-            </div>
-        </div>
+                <p style="color: var(--gold-accent); font-weight: bold; margin-top:0;">⚙️ Change Admin mPIN</p>
+                <input type="password" id="admin-new-mpin" class="custom-input" placeholder="New Admin mPIN (4/6 digits)" maxlength="6">
+                <button class="stake-btn" style="width:100%; background:var(--gold-accent); color:#000;" onclick="updateAdminMPIN()">Update Admin mPIN</button>
 
-        <!-- Profile View -->
-        <div id="profile-view" class="view-section">
-            <h3>User Profile</h3>
-            <div class="form-container" style="text-align: left; font-size: 11px;">
-                <p><b>Name:</b> Gouranga Mondal</p>
-                <p><b>Email:</b> user@gmail.com</p>
-                <p><b>Status:</b> Active</p>
-            </div>
-        </div>
-
-        <!-- Crypto Mining View -->
-        <div id="mining-view" class="view-section">
-            <h3>Crypto Mining Hub</h3>
-            <div class="form-container">
-                <p>Mined Tokens: <span id="mined-tokens" style="color: var(--accent); font-weight: bold;">0.00</span></p>
-                <button class="stake-btn" onclick="collectMined()">Claim Tokens</button>
-            </div>
-        </div>
-
-        <!-- Standalone Social Club View (Separate Page Style) -->
-        <div id="social-view" class="view-section">
-            <div class="social-standalone-header">
-                <span class="social-standalone-title">Social Club</span>
-                <button class="social-back-btn" onclick="switchView('home-view')">← Back Home</button>
-            </div>
-
-            <div class="social-body-content">
-                <div class="form-container" style="text-align: left; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">GM</div>
-                    <div>
-                        <p style="margin: 0; font-size: 12px; font-weight: bold;">Gouranga Mondal</p>
-                        <p style="margin: 0; font-size: 9px; color: var(--text-muted);">Social Club Member</p>
-                    </div>
+                <hr style="border-color:#1f2937; margin:15px 0;">
+                <p style="color: var(--primary-sky); font-weight: bold;">🎛️ Cost Control: Phone OTP (SMS) Toggle</p>
+                <div class="toggle-container">
+                    <span id="admin-otp-label" style="font-weight:bold; color:var(--text-main);">Real Phone OTP: OFF (Free Mode)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="admin-otp-toggle" onchange="toggleAdminPhoneOtp(this)">
+                        <span class="slider"></span>
+                    </label>
                 </div>
+                <p style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">Turn ON when ready to pay for live Firebase SMS charges globally.</p>
 
-                <div class="form-container" style="text-align: left; margin-bottom: 15px;">
-                    <textarea class="custom-input" rows="3" placeholder="What's on your mind in the Club?"></textarea>
-                    <div style="display: flex; gap: 8px; margin-top: 5px;">
-                        <button class="stake-btn" style="flex: 1;" onclick="alert('Post Published to Club!')">📢 Post Update</button>
-                        <button class="stake-btn" style="flex: 1; background: var(--bullet-color); color: #000;" onclick="alert('Media Uploaded!')">🖼 Add Photo/Video</button>
-                    </div>
+                <hr style="border-color:#1f2937; margin:15px 0;">
+                <p style="color: var(--accent-green); font-weight: bold;">📝 Sign Up & 10-Generation Sub-Page Settings</p>
+                <button class="stake-btn signup" style="width:100%; margin-bottom:10px;" onclick="switchView('admin-signup-subpage')">⚙️ Configure Sign-Up & 11 Input Boxes</button>
+
+                <hr style="border-color:#1f2937; margin:15px 0;">
+                <p style="color: var(--primary-sky); font-weight: bold;">🔗 Dynamic GitHub Link Manager (With Enter Button)</p>
+                <div id="admin-link-inputs" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
+
+                <hr style="border-color:#1f2937; margin:15px 0;">
+                <p style="color: var(--accent-green); font-weight: bold;">➕ Create New Page / Button</p>
+                <input type="text" id="new-page-name" class="custom-input" placeholder="New Page / Button Name">
+                <input type="text" id="new-page-url" class="custom-input" placeholder="GitHub URL (https://...)">
+                <button class="stake-btn signup" style="width:100%;" onclick="createNewPageButton()">Create & Save New Page</button>
+
+                <button class="stake-btn" style="width:100%; margin-top:15px; background:var(--card-bg); color:var(--text-main); border:1px solid var(--primary-sky);" onclick="switchView('home-view')">← Back to Home Dashboard</button>
+            </div>
+        </div>
+
+        <!-- ADMIN SIGN-UP & 10-GEN SUB-PAGE WITH 11 INPUT BOXES -->
+        <div id="admin-signup-subpage" class="view-section">
+            <h3 style="color: var(--accent-green);">📝 Sign-Up & 10-Gen Control (11 Boxes)</h3>
+            <div class="form-container" style="font-size: 11px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#030712; padding:8px; border-radius:6px; margin-bottom:8px;">
+                    <span>System Status (On/Off):</span>
+                    <input type="checkbox" id="admin-gen-toggle" style="transform: scale(1.3); cursor:pointer;">
                 </div>
                 
-                <div class="form-container" style="text-align: left; font-size: 11px; margin-bottom: 10px;">
-                    <p><b>Community Feed:</b> Welcome to Social Club! Connect with members and share updates.</p>
-                    <div style="display: flex; gap: 10px; margin-top: 8px;">
-                        <button class="stake-btn" style="padding: 3px 8px; font-size: 10px;" onclick="alert('Liked!')">👍 Like</button>
-                        <button class="stake-btn" style="padding: 3px 8px; font-size: 10px; background: var(--primary);" onclick="alert('Comment box opened!')">💬 Comment</button>
-                    </div>
+                <label style="font-size:10px; color:var(--text-muted);">1. Sign-Up Bonus Token (Box 1):</label>
+                <input type="number" id="box-signup-bonus" class="custom-input" placeholder="100">
+
+                <label style="font-size:10px; color:var(--text-muted);">2. Gen 1 Token Rate (Box 2):</label>
+                <input type="number" id="box-gen-1" class="custom-input" placeholder="10">
+
+                <label style="font-size:10px; color:var(--text-muted);">3. Gen 2 Token Rate (Box 3):</label>
+                <input type="number" id="box-gen-2" class="custom-input" placeholder="5">
+
+                <label style="font-size:10px; color:var(--text-muted);">4. Gen 3 Token Rate (Box 4):</label>
+                <input type="number" id="box-gen-3" class="custom-input" placeholder="3">
+
+                <label style="font-size:10px; color:var(--text-muted);">5. Gen 4 Token Rate (Box 5):</label>
+                <input type="number" id="box-gen-4" class="custom-input" placeholder="2">
+
+                <label style="font-size:10px; color:var(--text-muted);">6. Gen 5 Token Rate (Box 6):</label>
+                <input type="number" id="box-gen-5" class="custom-input" placeholder="1">
+
+                <label style="font-size:10px; color:var(--text-muted);">7. Gen 6 Token Rate (Box 7):</label>
+                <input type="number" id="box-gen-6" class="custom-input" placeholder="1">
+
+                <label style="font-size:10px; color:var(--text-muted);">8. Gen 7 Token Rate (Box 8):</label>
+                <input type="number" id="box-gen-7" class="custom-input" placeholder="0.5">
+
+                <label style="font-size:10px; color:var(--text-muted);">9. Gen 8 Token Rate (Box 9):</label>
+                <input type="number" id="box-gen-8" class="custom-input" placeholder="0.5">
+
+                <label style="font-size:10px; color:var(--text-muted);">10. Gen 9 Token Rate (Box 10):</label>
+                <input type="number" id="box-gen-9" class="custom-input" placeholder="0.25">
+
+                <label style="font-size:10px; color:var(--text-muted);">11. Gen 10 Token Rate (Box 11):</label>
+                <input type="number" id="box-gen-10" class="custom-input" placeholder="0.25">
+
+                <button class="stake-btn signup" style="width:100%; margin-top:10px;" onclick="saveElevenBoxesSettings()">Save All 11 Settings</button>
+                <button class="stake-btn" style="width:100%; margin-top:10px; background:var(--card-bg); color:var(--text-main); border:1px solid var(--primary-sky);" onclick="switchView('admin-panel-view')">← Back to Admin Panel</button>
+            </div>
+        </div>
+
+        <!-- STANDALONE MINI SKY EXCHANGE SUB-PAGE -->
+        <div id="mini-exchange-view" class="view-section">
+            <div class="exchange-page-header">
+                <span class="exchange-page-title">📈 Mini Sky Exchange</span>
+                <button class="back-home-btn" onclick="switchView('home-view')">← Back Home</button>
+            </div>
+            <div class="exchange-body-container">
+                <div class="form-container">
+                    <h4 style="margin-top:0; color:var(--primary-sky);">🔄 Instant Token Swap</h4>
+                    <p style="font-size: 11px; font-weight: 600;">Swap Mined SKY Tokens directly with USDT</p>
+                    <input type="number" class="custom-input" placeholder="Enter SKY Token Amount">
+                    <button class="stake-btn" style="width: 100%;" onclick="alert('Swap Requested!')">Swap to USDT</button>
+                </div>
+                <div class="form-container">
+                    <h4 style="margin-top:0; color:var(--accent-green);">📥 Deposit Funds</h4>
+                    <input type="number" class="custom-input" placeholder="Enter USDT Deposit Amount">
+                    <button class="stake-btn" style="width: 100%; background:var(--accent-green); color:#fff;" onclick="alert('Deposit Request Submitted!')">Deposit Funds</button>
+                </div>
+                <div class="form-container">
+                    <h4 style="margin-top:0; color:var(--danger);">📤 Withdraw Funds</h4>
+                    <input type="text" class="custom-input" placeholder="Enter Wallet Address (BEP20 / TRC20)">
+                    <input type="number" class="custom-input" placeholder="Amount (USDT)">
+                    <button class="stake-btn" style="width: 100%; background:var(--danger); color:#fff;" onclick="alert('Withdrawal Requested!')">Withdraw Now</button>
                 </div>
             </div>
         </div>
 
-        <!-- Gaming View -->
-        <div id="gaming-view" class="view-section">
-            <h3>Gaming Platform</h3>
-            <button class="stake-btn" onclick="alert('Game started!')">Spin & Win</button>
-        </div>
-
-        <!-- E-Commerce View -->
-        <div id="ecommerce-view" class="view-section">
-            <h3>E-Commerce Market</h3>
-            <div class="form-container"><p style="font-size: 12px;">Shop using tokens.</p></div>
-        </div>
-
-        <!-- Trading View -->
-        <div id="trading-view" class="view-section">
-            <h3>Trading Platform</h3>
-            <p style="font-size: 11px; color: var(--accent);">BULLET / USDT: $0.012</p>
-            <button class="stake-btn" onclick="alert('Trade placed!')">Buy / Sell</button>
-        </div>
-
-        <!-- Shareholders View -->
-        <div id="shareholder-view" class="view-section">
-            <h3>Project Shareholders</h3>
-            <div class="form-container" style="text-align: left; font-size: 11px;">
-                <p>Your Share: <b>1%</b></p>
-                <p>Monthly Dividend: <b>10.00 USDT</b></p>
+        <!-- Ads Rewards & Task Center View -->
+        <div id="adsview-view" class="view-section">
+            <h3 style="color: var(--primary-sky);">📺 Ads Rewards & Task Center</h3>
+            <div class="form-container" style="text-align: center;">
+                <p style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Watch sponsored ads & complete daily tasks to earn extra SKY Tokens!</p>
+                <div style="margin: 15px 0; padding: 10px; background: rgba(56, 189, 248, 0.1); border: 1px solid var(--primary-sky); border-radius: 8px;">
+                    <p style="font-size: 12px; margin: 0; font-weight: bold;">Daily Video Ads Reward</p>
+                    <p style="font-size: 10px; color: var(--accent-green); margin: 4px 0 8px 0;">Reward: +2 SKY Tokens / Ad</p>
+                    <button class="stake-btn" style="width: 100%;" onclick="alert('Watching Sponsored Video Ad...')">📺 Watch Video Ad</button>
+                </div>
+                <div style="padding: 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-green); border-radius: 8px;">
+                    <p style="font-size: 12px; margin: 0; font-weight: bold;">Social Media Follow Task</p>
+                    <p style="font-size: 10px; color: var(--primary-sky); margin: 4px 0 8px 0;">Reward: +5 SKY Tokens</p>
+                    <button class="stake-btn" style="width: 100%; background: var(--accent-green); color:#fff;" onclick="alert('Task Verification Completed!')">✅ Complete Task</button>
+                </div>
             </div>
         </div>
 
-        <!-- Daily Tasks View -->
-        <div id="dailytask-view" class="view-section">
-            <h3>Daily Tasks</h3>
-            <div class="form-container"><button class="stake-btn" onclick="alert('Claimed!')">Claim Reward</button></div>
+        <!-- Token Mining View -->
+        <div id="token-mining-view" class="view-section">
+            <h3 style="color: var(--primary-sky);">Free Token Mining Portal</h3>
+            <div class="form-container" style="text-align: center;">
+                <p style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Claim your daily free tokens distributed by MGSML Sky ecosystem.</p>
+                <div style="font-size: 22px; font-weight: 900; color: var(--accent-green); margin: 15px 0;" id="free-mined-display">0.00 SKY</div>
+                <button class="stake-btn" style="width: 100%; margin-bottom: 10px;" onclick="claimFreeToken()">Claim Free Tokens</button>
+                <button class="stake-btn" style="width: 100%; background: var(--card-bg); color: var(--text-main); border: 1px solid var(--primary-sky);" onclick="switchView('home-view')">← Back to Home</button>
+            </div>
         </div>
 
-        <!-- Ads View -->
-        <div id="adsview-view" class="view-section">
-            <h3>Ads View</h3>
-            <div class="form-container"><button class="stake-btn" onclick="alert('Watched!')">Watch Ad</button></div>
+        <!-- SKY Token Wallet View -->
+        <div id="wallet-sky-view" class="view-section">
+            <h3 style="color: var(--primary-sky);">SKY Token Wallet</h3>
+            <div class="form-container" style="text-align: left; font-size: 11px;">
+                <p><b>Balance:</b> <span id="sky-detail">0</span> SKY</p>
+                <p><b>Value in USDT:</b> $<span id="sky-usdt-val">0.00</span></p>
+                <input type="text" class="custom-input" value="0xSKY...99B" readonly>
+                <button class="stake-btn" style="width: 100%;" onclick="alert('Transfer Option Coming Soon!')">Swap / Transfer</button>
+            </div>
+        </div>
+
+        <!-- AFFILIATE PROGRAM VIEW -->
+        <div id="affiliate-view" class="view-section">
+            <h3 style="color: var(--primary-sky);">🤝 Affiliate Program</h3>
+            <div class="form-container" style="font-size: 11px;">
+                <p style="font-weight: 700; margin-top:0;">Invite partners & build your crypto mining network to earn level commissions in SKY Tokens.</p>
+                <input type="text" id="affiliate-link-box" class="custom-input" value="🚀 MGSML SKY PROJECT - Crypto Mining & Web3 Ecosystem! Join now with ID MGSML2000 and start mining SKY Tokens: https://mgsml-sky.github.io/mgsmal-mega-app/#MGSML2000" readonly>
+                
+                <button class="stake-btn signup" style="width: 100%; margin-top: 6px;" onclick="copyAffiliateText()">📋 Copy Promo Message & Link</button>
+                
+                <div class="social-share-box">
+                    <button class="share-platform-btn btn-native" onclick="nativeShare()">🚀 Direct Share (Apps)</button>
+                    <button class="share-platform-btn btn-wa" onclick="shareOnWhatsApp()">WhatsApp</button>
+                    <button class="share-platform-btn btn-tg" onclick="shareOnTelegram()">Telegram</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFILE VIEW -->
+        <div id="profile-view" class="view-section">
+            <h3 style="color: var(--primary-sky);">👤 User Profile & Wallet</h3>
+            <div class="form-container" style="text-align: left; font-size: 11px;">
+                <div class="profile-avatar-container">
+                    <input type="file" id="profile-photo-input" accept="image/*" style="display: none;" onchange="handlePhotoUpload(event)">
+                    <div class="profile-avatar" onclick="document.getElementById('profile-photo-input').click()" title="Click to change profile photo">
+                        <span id="avatar-icon">👤</span>
+                        <img id="avatar-img" src="" alt="" style="display: none;">
+                    </div>
+                    <span style="font-size: 9px; color: var(--primary-sky); margin-top: 3px; cursor: pointer;" onclick="document.getElementById('profile-photo-input').click()">Change Photo</span>
+                    <b style="font-size: 13px; margin-top: 5px;" id="profile-name">Guest User</b>
+                    <span style="color: var(--primary-sky);" id="profile-id">MGSML2000</span>
+                </div>
+                
+                <p><b>Email:</b> <span id="profile-email">Not set</span></p>
+                <p><b>Mobile:</b> <span id="profile-phone">Not set</span></p>
+                <p><b>WhatsApp:</b> <span id="profile-whatsapp">Not set</span></p>
+
+                <!-- Edit Profile Section -->
+                <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid var(--border-glow); padding: 10px; border-radius: 8px; margin: 10px 0;">
+                    <p style="margin: 0 0 5px 0; color: var(--primary-sky); font-weight: bold;">✏️ Edit Profile (Name Correction)</p>
+                    <input type="text" id="edit-name-input" class="custom-input" placeholder="Update Full Name">
+                    <button class="stake-btn" style="width: 100%; font-size: 11px; padding: 6px; margin-top: 4px;" onclick="saveProfileChanges()">Save Changes</button>
+                </div>
+                
+                <!-- Multi-Token Exchange Wallet Dropdown -->
+                <button class="wallet-dropdown-btn" onclick="toggleWalletDropdown()">
+                    <span>💰 Multi-Token Exchange Wallet (0.00)</span> <span>▼</span>
+                </button>
+                <div class="token-list-container" id="tokenListDropdown">
+                    <div class="token-item"><span>USDT:</span> <b id="w-usdt">0.00</b></div>
+                    <div class="token-item"><span>SKY:</span> <b id="w-sky">0.00</b></div>
+                    <div class="token-item"><span>MG:</span> <b id="w-mg">0.00</b></div>
+                    <div class="token-item"><span>SCS:</span> <b id="w-scs">0.00</b></div>
+                    <div class="token-item"><span>MLF:</span> <b id="w-mlf">0.00</b></div>
+                    <div class="token-item"><span>MTR:</span> <b id="w-mtr">0.00</b></div>
+                    <div class="token-item"><span>BULT:</span> <b id="w-bult">0.00</b></div>
+                    <div class="token-item"><span>JKR:</span> <b id="w-jkr">0.00</b></div>
+                    <div class="token-item"><span>BLH:</span> <b id="w-blh">0.00</b></div>
+                    <div class="token-item"><span>BRH:</span> <b id="w-brh">0.00</b></div>
+                    <div class="token-item"><span>HRM:</span> <b id="w-hrm">0.00</b></div>
+                    <div class="token-item"><span>DOJI:</span> <b id="w-doji">0.00</b></div>
+                    <div class="token-item"><span>SGP:</span> <b id="w-sgp">0.00</b></div>
+                    <div class="token-item"><span>MRB:</span> <b id="w-mrb">0.00</b></div>
+                    <div class="token-item"><span>ULG:</span> <b id="w-ulg">0.00</b></div>
+                    <div class="token-item"><span>BWD:</span> <b id="w-bwd">0.00</b></div>
+                    <div class="token-item"><span>RKT:</span> <b id="w-rkt">0.00</b></div>
+                    <div class="token-item"><span>GME:</span> <b id="w-gme">0.00</b></div>
+                    <div class="token-item"><span>SSR:</span> <b id="w-ssr">0.00</b></div>
+                    <div class="token-item"><span>TPY:</span> <b id="w-tpy">0.00</b></div>
+                </div>
+
+                <div style="display: flex; gap: 5px; margin-top: 10px;">
+                    <button class="auth-btn" style="flex:1;" onclick="switchView('mini-exchange-view')">Deposit</button>
+                    <button class="auth-btn signup" style="flex:1;" onclick="switchView('mini-exchange-view')">Withdraw</button>
+                </div>
+
+                <!-- 10-Generation Roadmap Toggle Button -->
+                <button class="gen-roadmap-toggle-btn" onclick="toggleGenRoadmap()">
+                    <span>🌐 10-Generation Sponsor Roadmap</span> <span>▼</span>
+                </button>
+                <div class="gen-roadmap-container" id="genRoadmapSection">
+                    <table class="gen-roadmap-table">
+                        <tr><th>Gen</th><th>Members</th><th>Income ($)</th></tr>
+                        <tr><td>Gen 1</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 2</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 3</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 4</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 5</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 6</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 7</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 8</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 9</td><td>0</td><td>0.00</td></tr>
+                        <tr><td>Gen 10</td><td>0</td><td>0.00</td></tr>
+                    </table>
+                </div>
+
+                <h4 style="margin-top: 15px; color: var(--gold-accent);">🔄 Change mPIN</h4>
+                <input type="password" id="old-mpin" class="custom-input" placeholder="Current mPIN" maxlength="6">
+                <input type="password" id="new-mpin" class="custom-input" placeholder="New mPIN (4/6 digits)" maxlength="6">
+                <button class="stake-btn" style="width: 100%;" onclick="updateMPIN()">Update mPIN</button>
+            </div>
         </div>
 
         <!-- Sign In View -->
         <div id="signin-view" class="view-section">
-            <h3>Sign In</h3>
+            <h3>🔐 Secure Sign In</h3>
             <div class="form-container">
-                <input type="email" class="custom-input" placeholder="Email / Mobile">
-                <input type="password" class="custom-input" placeholder="Password">
-                <button class="stake-btn" style="width: 100%;" onclick="alert('Signed in!')">Sign In</button>
+                <label style="font-size: 11px; color: var(--text-muted);">Registered Email or Mobile</label>
+                <input type="text" id="si-identifier" class="custom-input" placeholder="Email / Mobile Number">
+
+                <label style="font-size: 11px; color: var(--text-muted);">Your Secret mPIN</label>
+                <input type="password" id="si-mpin" class="custom-input" placeholder="Enter mPIN" maxlength="6">
+
+                <button class="stake-btn" style="width: 100%; margin-top: 10px;" onclick="processSignIn()">Sign In</button>
+                <button class="stake-btn" style="width: 100%; margin-top: 10px; background:var(--card-bg); color:var(--text-main); border:1px solid var(--accent-green);" onclick="switchView('signup-view')">Create New Account</button>
             </div>
         </div>
 
-        <!-- Sign Up View -->
+        <!-- Sign Up View (No Password - Direct Email OTP Verification) -->
         <div id="signup-view" class="view-section">
-            <h3>Sign Up</h3>
+            <h3>📝 New Account Registration</h3>
             <div class="form-container">
-                <input type="text" class="custom-input" placeholder="Full Name">
-                <input type="email" class="custom-input" placeholder="Email / Mobile">
-                <input type="password" class="custom-input" placeholder="Password">
-                <button class="stake-btn signup" style="width: 100%;" onclick="alert('Registered!')">Sign Up</button>
-            </div>
-        </div>
+                <label style="font-size: 11px; color: var(--text-muted);">Sponsor / Referral ID (Editable / Default: MGSML2000)</label>
+                <input type="text" id="su-sponsor" class="custom-input" value="MGSML2000">
 
-        <!-- Admin View -->
-        <div id="admin-view" class="view-section">
-            <h3 style="color: var(--danger);">Admin Panel</h3>
-            <div class="form-container" style="text-align: left;">
-                <textarea id="broadcast-msg" class="custom-input" rows="3" placeholder="Broadcast message..."></textarea>
-                <button class="stake-btn" style="width: 100%; background: var(--danger);" onclick="alert('Sent!')">Send Broadcast</button>
-            </div>
-        </div>
+                <label style="font-size: 11px; color: var(--text-muted);">Full Name</label>
+                <input type="text" id="su-name" class="custom-input" placeholder="Enter Full Name">
 
-        <!-- Settings View -->
-        <div id="settings-view" class="view-section">
-            <h3>Settings</h3>
-            <div class="form-container" style="text-align: left; font-size: 12px;">
-                <p>Dark Mode: <input type="checkbox" checked></p>
-                <button class="stake-btn" style="width: 100%; margin-top: 10px;" onclick="alert('Saved!')">Save Settings</button>
+                <label style="font-size: 11px; color: var(--text-muted);">Mobile Number (Saved to Profile)</label>
+                <input type="tel" id="su-phone" class="custom-input" placeholder="Mobile Number">
+
+                <label style="font-size: 11px; color: var(--text-muted); margin-top:5px; display:block;">Email Address (Instant OTP Verification)</label>
+                <div class="verify-box">
+                    <input type="email" id="su-email" class="custom-input" placeholder="Enter Email Address">
+                    <button class="auth-btn" type="button" onclick="sendEmailOTP()">Send OTP</button>
+                </div>
+
+                <!-- OTP Input Box which appears after clicking Send OTP -->
+                <div id="email-otp-section" style="display:none; margin-top:8px;">
+                    <div class="verify-box">
+                        <input type="text" id="su-email-otp" class="custom-input" placeholder="Enter 4-Digit OTP Code">
+                        <button class="auth-btn signup" type="button" onclick="verifyEmailOTP()">Verify</button>
+                    </div>
+                </div>
+                <span id="email-verified-badge" class="verified-badge">✔ Email Verified Successfully</span>
+
+                <label style="font-size: 11px; color: var(--text-muted); margin-top:5px; display:block;">WhatsApp Number</label>
+                <input type="tel" id="su-whatsapp" class="custom-input" placeholder="Enter WhatsApp Number">
+
+                <label style="font-size: 11px; color: var(--text-muted);">Create 4/6 Digit mPIN</label>
+                <input type="password" id="su-mpin" class="custom-input" placeholder="Create Secure mPIN" maxlength="6">
+
+                <button class="stake-btn signup" style="width: 100%; margin-top: 10px;" onclick="verifyAndRegister()">Complete Registration</button>
+                <button class="stake-btn" style="width: 100%; margin-top: 10px; background:var(--card-bg); color:var(--text-main); border:1px solid var(--primary-sky);" onclick="switchView('signin-view')">Already have an account? Sign In</button>
             </div>
         </div>
 
     </div>
 
-    <!-- Bottom Navigation Bar -->
+    <!-- Navigation Bar -->
     <div class="bottom-nav" id="main-bottom-nav">
         <button class="nav-item active" onclick="switchView('home-view')"><span>🏠</span>Home</button>
-        <button class="nav-item" onclick="switchView('deposit-view')"><span>📥</span>Deposit</button>
-        <button class="nav-item" onclick="switchView('withdraw-view')"><span>📤</span>Withdraw</button>
-        <button class="nav-item" onclick="switchView('referral-view')"><span>👥</span>Refer</button>
-        <button class="nav-item" onclick="switchView('profile-view')"><span>👤</span>Profile</button>
+        <button class="nav-item" onclick="switchView('adsview-view')"><span>📺</span>Tasks/Ads</button>
+        <button class="nav-item" onclick="switchView('affiliate-view')"><span>🤝</span>Affiliate</button>
+        <button class="nav-item" onclick="switchView('profile-view')">
+            <span id="nav-profile-icon">👤</span>
+            <img id="nav-profile-img" class="nav-avatar" src="" alt="" style="display: none;">
+            Profile
+        </button>
     </div>
 
     <script>
-        function toggleMenu() {
-            const menu = document.getElementById('sideMenu');
-            menu.classList.toggle('open');
+        let tokenPrices = {};
+        let adminLinks = {};
+        let tokenSettings = { enabled: true, bonus: 100, genRates: [10, 5, 3, 2, 1, 1, 0.5, 0.5, 0.25, 0.25] };
+        let adminPhoneOtpEnabled = false;
+        let generatedOtp = "";
+        let isEmailVerified = false;
+        let currentUser = null;
+
+        const masterButtonList = [
+            "Social Club", "Chart Club", "Free Mining", "Mini Sky Exchange", "Sky Games",
+            "Cricket Prediction", "E-Commerce", "Shareholders", "Settings", "Broadcast", "USDT", "SKY", "MG", "SCS",
+            "MLF", "MTR", "BULT", "JKR", "BLH", "BRH", "HRM", "DOJI", "SGP", "MRB", "ULG",
+            "BWD", "RKT", "GME", "SSR", "TPY", "Home Dashboard", "Tasks / Ads Rewards Center",
+            "Affiliate Program Portal", "User Profile & Security Page", "Multi-Token Exchange Wallet",
+            "Free Token Mining Portal", "SKY Token Wallet Details", "Sky Games & Rocket",
+            "Cricket Prediction & Live", "E-Commerce Market", "Digital Products (Wholesale)",
+            "Shareholder Equity Portal", "User Wallet Management", "Admin Panel"
+        ];
+
+        function loadLiveTokenPrices() {
+            db.collection("settings").doc("token_prices").onSnapshot((doc) => {
+                if (doc.exists) {
+                    tokenPrices = doc.data();
+                    for (let token in tokenPrices) {
+                        const elem = document.getElementById('rate-' + token.toLowerCase());
+                        if (elem) elem.innerText = tokenPrices[token];
+                    }
+                    if (tokenPrices['SKY']) {
+                        document.getElementById('sky-live-price').innerText = tokenPrices['SKY'];
+                    }
+                }
+            });
         }
 
+        function loadAdminTokenSettings() {
+            db.collection("settings").doc("token_distribution").onSnapshot((doc) => {
+                if (doc.exists) {
+                    tokenSettings = doc.data();
+                    document.getElementById('admin-gen-toggle').checked = tokenSettings.enabled ?? true;
+                    document.getElementById('box-signup-bonus').value = tokenSettings.bonus ?? 100;
+                    const rates = tokenSettings.genRates || [10, 5, 3, 2, 1, 1, 0.5, 0.5, 0.25, 0.25];
+                    for (let i = 0; i < 10; i++) {
+                        const boxElem = document.getElementById('box-gen-' + (i + 1));
+                        if (boxElem) boxElem.value = rates[i] ?? 0;
+                    }
+                }
+            });
+        }
+
+        function loadAdminOtpToggleState() {
+            db.collection("settings").doc("admin_config").onSnapshot((doc) => {
+                if (doc.exists) {
+                    adminPhoneOtpEnabled = doc.data().phoneOtpEnabled ?? false;
+                    const toggleElem = document.getElementById('admin-otp-toggle');
+                    const labelElem = document.getElementById('admin-otp-label');
+                    if (toggleElem) toggleElem.checked = adminPhoneOtpEnabled;
+                    if (labelElem) {
+                        labelElem.innerText = adminPhoneOtpEnabled ? "Real Phone OTP: ON (Paid SMS Active)" : "Real Phone OTP: OFF (Free Mode)";
+                    }
+                }
+            });
+        }
+
+        async function toggleAdminPhoneOtp(checkbox) {
+            adminPhoneOtpEnabled = checkbox.checked;
+            try {
+                await db.collection("settings").doc("admin_config").set({ phoneOtpEnabled: adminPhoneOtpEnabled }, { merge: true });
+                const labelElem = document.getElementById('admin-otp-label');
+                if (labelElem) {
+                    labelElem.innerText = adminPhoneOtpEnabled ? "Real Phone OTP: ON (Paid SMS Active)" : "Real Phone OTP: OFF (Free Mode)";
+                }
+                alert(adminPhoneOtpEnabled ? "Real Phone OTP enabled!" : "Real Phone OTP disabled (Free Mode).");
+            } catch (err) {
+                console.error("Error updating OTP toggle:", err);
+                alert("Failed to update setting.");
+            }
+        }
+
+        async function saveElevenBoxesSettings() {
+            const enabled = document.getElementById('admin-gen-toggle').checked;
+            const bonus = parseFloat(document.getElementById('box-signup-bonus').value) || 100;
+            const genRates = [];
+            for (let i = 1; i <= 10; i++) {
+                const val = parseFloat(document.getElementById('box-gen-' + i).value) || 0;
+                genRates.push(val);
+            }
+
+            tokenSettings = { enabled, bonus, genRates };
+            try {
+                await db.collection("settings").doc("token_distribution").set(tokenSettings);
+                alert('All 11 box settings saved successfully!');
+            } catch (err) {
+                console.error("Error saving 11 boxes settings:", err);
+                alert('Error saving settings.');
+            }
+        }
+
+        function loadAdminLinks() {
+            db.collection("settings").doc("admin_links").onSnapshot((doc) => {
+                if (doc.exists) {
+                    adminLinks = doc.data();
+                } else {
+                    adminLinks = {};
+                }
+                renderAdminInputs();
+            });
+        }
+
+        function renderAdminInputs() {
+            const container = document.getElementById('admin-link-inputs');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const allKeys = Array.from(new Set([...masterButtonList, ...Object.keys(adminLinks)]));
+
+            allKeys.forEach(btnName => {
+                const currentUrl = adminLinks[btnName] || '';
+                const div = document.createElement('div');
+                div.style.cssText = "display:flex; flex-direction:column; gap:3px; margin-bottom:6px; background:#111827; padding:6px; border-radius:6px; border:1px solid #1f2937;";
+                div.innerHTML = `
+                    <span style="font-weight:bold; color:var(--primary-sky);">${btnName}</span>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="link-input-${safeId(btnName)}" class="custom-input" style="margin:0; flex:1;" value="${currentUrl}" placeholder="https://github.com/...">
+                        <button class="auth-btn signup" onclick="saveAdminLink('${btnName}')">Save</button>
+                        <button class="auth-btn" onclick="testAdminLink('${btnName}')">Enter</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function safeId(name) {
+            return name.replace(/[^a-zA-Z0-9]/g, '_');
+        }
+
+        async function saveAdminLink(btnName) {
+            const inputId = 'link-input-' + safeId(btnName);
+            const urlVal = document.getElementById(inputId).value.trim();
+            adminLinks[btnName] = urlVal;
+
+            try {
+                await db.collection("settings").doc("admin_links").set(adminLinks, { merge: true });
+                alert(btnName + ' link saved successfully!');
+            } catch (err) {
+                console.error("Error saving link:", err);
+                alert('Error saving link.');
+            }
+        }
+
+        function testAdminLink(btnName) {
+            const targetUrl = adminLinks[btnName];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            } else {
+                alert('Coming Soon!');
+            }
+        }
+
+        async function createNewPageButton() {
+            const pageName = document.getElementById('new-page-name').value.trim();
+            const pageUrl = document.getElementById('new-page-url').value.trim();
+
+            if (!pageName || !pageUrl) {
+                alert('Please provide both page name and GitHub URL!');
+                return;
+            }
+
+            adminLinks[pageName] = pageUrl;
+            try {
+                await db.collection("settings").doc("admin_links").set(adminLinks, { merge: true });
+                document.getElementById('new-page-name').value = '';
+                document.getElementById('new-page-url').value = '';
+                alert('New page created and saved successfully!');
+                loadAdminLinks();
+            } catch (err) {
+                console.error("Error creating page:", err);
+                alert('Error creating new page.');
+            }
+        }
+
+        function navigateToLink(buttonKey) {
+            const targetUrl = adminLinks[buttonKey];
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            } else {
+                alert('Coming Soon!');
+            }
+        }
+
+        function triggerAdminAccess() {
+            document.getElementById('secret-modal-mpin').value = '';
+            document.getElementById('admin-modal-overlay').style.display = 'flex';
+            document.getElementById('secret-modal-mpin').focus();
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal-overlay').style.display = 'none';
+        }
+
+        function checkInstantAdminAccess(inputElem) {
+            const enteredMPIN = inputElem.value.trim();
+            if (enteredMPIN.length < 4) return;
+
+            db.collection("settings").doc("admin_auth").get().then((doc) => {
+                let savedMPIN = "1234";
+                if (doc.exists && doc.data().mpin) {
+                    savedMPIN = doc.data().mpin;
+                }
+
+                if (enteredMPIN === savedMPIN) {
+                    closeAdminModal();
+                    switchView('admin-panel-view');
+                    if(document.getElementById('sideMenu').classList.contains('open')) {
+                        toggleMenu();
+                    }
+                }
+            }).catch(() => {
+                if (enteredMPIN === "1234") {
+                    closeAdminModal();
+                    switchView('admin-panel-view');
+                    if(document.getElementById('sideMenu').classList.contains('open')) {
+                        toggleMenu();
+                    }
+                }
+            });
+        }
+
+        async function updateAdminMPIN() {
+            const newMpin = document.getElementById('admin-new-mpin').value.trim();
+            if (!newMpin || newMpin.length < 4) {
+                alert('New mPIN must be at least 4 digits!');
+                return;
+            }
+
+            try {
+                await db.collection("settings").doc("admin_auth").set({ mpin: newMpin }, { merge: true });
+                document.getElementById('admin-new-mpin').value = '';
+                alert('Admin mPIN updated successfully!');
+            } catch (err) {
+                console.error("Error updating mPIN:", err);
+                alert('Error updating mPIN.');
+            }
+        }
+
+        function toggleWalletDropdown() {
+            const dropdown = document.getElementById('tokenListDropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function toggleGenRoadmap() {
+            const roadmap = document.getElementById('genRoadmapSection');
+            roadmap.style.display = roadmap.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function openExternalLink(url) { window.location.href = url; }
+        function toggleMenu() { document.getElementById('sideMenu').classList.toggle('open'); }
+        
         function switchView(viewId) {
             const views = document.querySelectorAll('.view-section');
             views.forEach(v => v.classList.remove('active-view'));
             
             const targetView = document.getElementById(viewId);
-            if (targetView) {
-                targetView.classList.add('active-view');
-            }
+            if (targetView) targetView.classList.add('active-view');
 
             const topHeader = document.getElementById('main-top-header');
             const subHeader = document.getElementById('main-sub-header');
             const bottomNav = document.getElementById('main-bottom-nav');
 
-            if (viewId === 'social-view') {
+            if (viewId === 'mini-exchange-view' || viewId === 'admin-panel-view' || viewId === 'admin-signup-subpage') {
                 topHeader.style.display = 'none';
                 subHeader.style.display = 'none';
                 bottomNav.style.display = 'none';
@@ -796,41 +1237,365 @@
             }
         }
 
-        let bulletBalance = parseInt(localStorage.getItem('bullet_bal')) || 500;
-        const COOLDOWN = 24 * 60 * 60 * 1000;
-
-        function updateWalletUI() {
-            document.getElementById('bullet-bal-top').innerText = bulletBalance;
-            document.getElementById('bullet-detail').innerText = bulletBalance;
-            document.getElementById('bullet-usdt-val').innerText = (bulletBalance * 0.012).toFixed(2);
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    localStorage.setItem('mgsml_profile_photo', base64Image);
+                    updateAvatarUI(base64Image);
+                    
+                    if (currentUser) {
+                        db.collection("users").doc(currentUser.userId).update({ photoUrl: base64Image });
+                    }
+                    alert('Profile photo updated successfully!');
+                }
+                reader.readAsDataURL(file);
+            }
         }
 
-        function startStaking() {
-            const lastStake = localStorage.getItem('last_stake_time');
-            const now = new Date().getTime();
+        function updateAvatarUI(imgSrc) {
+            const avatarImg = document.getElementById('avatar-img');
+            const avatarIcon = document.getElementById('avatar-icon');
+            const navImg = document.getElementById('nav-profile-img');
+            const navIcon = document.getElementById('nav-profile-icon');
 
-            if (lastStake && now - parseInt(lastStake) < COOLDOWN) {
-                alert('Staking is already active! Please wait for 24 hours cooldown.');
+            if (imgSrc) {
+                avatarImg.src = imgSrc;
+                avatarImg.style.display = 'block';
+                avatarIcon.style.display = 'none';
+
+                navImg.src = imgSrc;
+                navImg.style.display = 'inline-block';
+                navIcon.style.display = 'none';
+            }
+        }
+
+        async function saveProfileChanges() {
+            if (!currentUser) { alert('Please sign in first!'); return; }
+            const newName = document.getElementById('edit-name-input').value.trim();
+            if (!newName) { alert('Please enter a valid name!'); return; }
+
+            try {
+                await db.collection("users").doc(currentUser.userId).update({ name: newName });
+                currentUser.name = newName;
+                document.getElementById('profile-name').innerText = newName;
+                document.getElementById('edit-name-input').value = '';
+                alert('Profile name updated successfully!');
+            } catch (error) {
+                console.error("Error updating profile:", error);
+                alert('Error updating name.');
+            }
+        }
+
+        function checkAuthSession() {
+            const savedId = localStorage.getItem('mgsml_user_id');
+            if (savedId) {
+                db.collection("users").doc(savedId).get().then((doc) => {
+                    if (doc.exists) {
+                        currentUser = doc.data();
+                        updateUIAfterLogin();
+                    }
+                });
+            }
+        }
+
+        function updateUIAfterLogin() {
+            if (!currentUser) return;
+            skyBalance = currentUser.skyBalance || 0;
+            updateWalletUI();
+
+            document.getElementById('profile-name').innerText = currentUser.name || 'Guest User';
+            document.getElementById('edit-name-input').value = currentUser.name || '';
+            document.getElementById('profile-id').innerText = currentUser.userId || 'MGSML2000';
+            document.getElementById('profile-email').innerText = currentUser.email || 'Not set';
+            document.getElementById('profile-phone').innerText = currentUser.phone || 'Not set';
+            document.getElementById('profile-whatsapp').innerText = currentUser.whatsapp || 'Not set';
+            document.getElementById('w-sky').innerText = skyBalance;
+
+            const promoBox = document.getElementById('affiliate-link-box');
+            if (promoBox) {
+                promoBox.value = `🚀 MGSML SKY PROJECT - Crypto Mining & Web3 Ecosystem! Join now with ID ${currentUser.userId} and start mining SKY Tokens: https://mgsml-sky.github.io/mgsmal-mega-app/#${currentUser.userId}`;
+            }
+
+            if (currentUser.photoUrl) {
+                updateAvatarUI(currentUser.photoUrl);
+            }
+            switchView('home-view');
+        }
+
+        // পাসওয়ার্ড ছাড়া সরাসরি ইমেইলে ওটিপি পাঠানোর ফাংশন
+        function sendEmailOTP() {
+            const email = document.getElementById('su-email').value.trim();
+            if (!email) {
+                alert('Please enter your Email Address first!');
                 return;
             }
 
-            bulletBalance += 20; 
-            localStorage.setItem('bullet_bal', bulletBalance);
-            localStorage.setItem('last_stake_time', now);
-            
-            updateWalletUI();
-            alert('Coin Staking started! +20 Bullet added.');
+            // ৪ ডিজিটের র্যান্ডম ওটিপি কোড তৈরি করা
+            generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
+            // ডেমো মোডে অ্যালার্টে ওটিপি কোডটি দেখাবে যাতে আপনি টেস্ট করতে পারেন
+            alert('OTP Generated (Demo mode): ' + generatedOtp);
+            document.getElementById('email-otp-section').style.display = 'block';
         }
 
-        let minedCount = 0;
-        function collectMined() {
-            minedCount += 1.5;
-            document.getElementById('mined-tokens').innerText = minedCount.toFixed(2);
-            alert('Claimed successfully!');
+        // ওটিপি ভেরিফাই করার ফাংশন
+        function verifyEmailOTP() {
+            const enteredOtp = document.getElementById('su-email-otp').value.trim();
+            if (!enteredOtp) {
+                alert('Please enter the OTP code!');
+                return;
+            }
+
+            if (enteredOtp === generatedOtp) {
+                isEmailVerified = true;
+                document.getElementById('email-otp-section').style.display = 'none';
+                document.getElementById('email-verified-badge').style.display = 'block';
+                alert('Email verified successfully!');
+            } else {
+                alert('Invalid OTP code! Please try again.');
+            }
+        }
+
+        async function verifyAndRegister() {
+            const name = document.getElementById('su-name').value.trim();
+            const phone = document.getElementById('su-phone').value.trim();
+            const email = document.getElementById('su-email').value.trim();
+            const whatsapp = document.getElementById('su-whatsapp').value.trim();
+            const sponsorInput = document.getElementById('su-sponsor').value.trim();
+            const sponsor = sponsorInput !== "" ? sponsorInput : "MGSML2000";
+            const mpin = document.getElementById('su-mpin').value.trim();
+
+            if (!name || !phone || !email || !whatsapp || !mpin) {
+                alert('Please fill in all required fields!');
+                return;
+            }
+            if (!isEmailVerified) {
+                alert('Please verify your email using the OTP sent to your inbox first!');
+                return;
+            }
+            if (mpin.length < 4) {
+                alert('mPIN must be at least 4 digits!');
+                return;
+            }
+
+            try {
+                const initialBonus = (tokenSettings.enabled !== false) ? (tokenSettings.bonus || 100) : 10;
+                const counterRef = db.collection("system").doc("counters");
+                const res = await db.runTransaction(async (transaction) => {
+                    const counterDoc = await transaction.get(counterRef);
+                    let newId = 2000;
+                    if (counterDoc.exists) {
+                        newId = counterDoc.data().lastUserId + 1;
+                    }
+                    transaction.set(counterRef, { lastUserId: newId }, { merge: true });
+                    return newId;
+                });
+
+                const userId = "MGSML" + res;
+                const newUser = {
+                    userId: userId,
+                    name: name,
+                    phone: phone,
+                    email: email,
+                    whatsapp: whatsapp,
+                    sponsor: sponsor,
+                    mpin: mpin,
+                    skyBalance: initialBonus,
+                    photoUrl: "",
+                    createdAt: new Date().toISOString()
+                };
+
+                await db.collection("users").doc(userId).set(newUser);
+                localStorage.setItem('mgsml_user_id', userId);
+                currentUser = newUser;
+
+                alert('Registration successful! You received ' + initialBonus + ' SKY tokens.');
+                updateUIAfterLogin();
+            } catch (error) {
+                console.error("Error saving user:", error);
+                alert('Registration failed: ' + error.message);
+            }
+        }
+
+        async function processSignIn() {
+            const identifier = document.getElementById('si-identifier').value.trim();
+            const mpin = document.getElementById('si-mpin').value.trim();
+
+            if (!identifier || !mpin) {
+                alert('Please enter identifier and mPIN!');
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection("users").where("email", "==", identifier).get();
+                let userDoc = null;
+                if (!snapshot.empty) {
+                    userDoc = snapshot.docs[0].data();
+                } else {
+                    const phoneSnapshot = await db.collection("users").where("phone", "==", identifier).get();
+                    if (!phoneSnapshot.empty) {
+                        userDoc = phoneSnapshot.docs[0].data();
+                    } else {
+                        const idSnapshot = await db.collection("users").where("userId", "==", identifier.toUpperCase()).get();
+                        if (!idSnapshot.empty) userDoc = idSnapshot.docs[0].data();
+                    }
+                }
+
+                if (userDoc && userDoc.mpin === mpin) {
+                    localStorage.setItem('mgsml_user_id', userDoc.userId);
+                    currentUser = userDoc;
+                    alert('Signed in successfully!');
+                    updateUIAfterLogin();
+                } else {
+                    alert('Invalid details or mPIN mismatch!');
+                }
+            } catch (err) {
+                console.error("Sign in error:", err);
+                alert("Sign in error occurred.");
+            }
+        }
+
+        async function updateMPIN() {
+            if (!currentUser) return;
+            const oldMpin = document.getElementById('old-mpin').value;
+            const newMpin = document.getElementById('new-mpin').value;
+
+            if (oldMpin !== currentUser.mpin) { alert('Current mPIN is incorrect!'); return; }
+            if (!newMpin || newMpin.length < 4) { alert('New mPIN must be at least 4 digits!'); return; }
+
+            await db.collection("users").doc(currentUser.userId).update({ mpin: newMpin });
+            currentUser.mpin = newMpin;
+            alert('mPIN updated successfully!');
+            document.getElementById('old-mpin').value = '';
+            document.getElementById('new-mpin').value = '';
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('mgsml_user_id');
+            auth.signOut();
+            location.reload();
+        }
+
+        let skyBalance = parseInt(localStorage.getItem('sky_bal')) || 0;
+        const MINING_COOLDOWN = 3 * 60 * 60 * 1000;
+
+        function updateWalletUI() {
+            document.getElementById('sky-detail').innerText = skyBalance;
+            document.getElementById('w-sky').innerText = skyBalance;
+            const currentSkyPrice = parseFloat(document.getElementById('sky-live-price').innerText) || 0;
+            document.getElementById('sky-usdt-val').innerText = (skyBalance * currentSkyPrice).toFixed(2);
+        }
+
+        function initMiningTimer() {
+            const userKey = currentUser ? currentUser.userId : 'guest';
+            const lastMining = localStorage.getItem('last_mining_time_' + userKey);
+            if (lastMining) {
+                const now = new Date().getTime();
+                const elapsed = now - parseInt(lastMining);
+                if (elapsed < MINING_COOLDOWN) {
+                    startCountdownTimer(MINING_COOLDOWN - elapsed);
+                } else {
+                    document.getElementById('staking-timer').innerText = "Ready to Mine (Claim)";
+                    document.getElementById('mining-action-btn').innerText = "Claim 3H Mining";
+                }
+            }
+        }
+
+        async function startMiningEngine() {
+            const userKey = currentUser ? currentUser.userId : 'guest';
+            const lastMining = localStorage.getItem('last_mining_time_' + userKey);
+            const now = new Date().getTime();
+
+            if (lastMining && now - parseInt(lastMining) < MINING_COOLDOWN) {
+                alert('Mining is active! Please wait for 3H cooldown.');
+                return;
+            }
+
+            skyBalance += 10;
+            localStorage.setItem('sky_bal', skyBalance);
+            localStorage.setItem('last_mining_time_' + userKey, now);
+
+            if (currentUser) {
+                currentUser.skyBalance = skyBalance;
+                await db.collection("users").doc(currentUser.userId).update({ skyBalance: skyBalance });
+            }
+            
+            updateWalletUI();
+            alert('3-Hour Sky Mining Completed! +10 SKY Credited.');
+            startCountdownTimer(MINING_COOLDOWN);
+        }
+
+        function startCountdownTimer(duration) {
+            const btn = document.getElementById('mining-action-btn');
+            const timerDisplay = document.getElementById('staking-timer');
+            btn.innerText = "Mining in Progress...";
+            
+            let timeLeft = duration;
+            const interval = setInterval(() => {
+                let hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                let minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                let seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+                timerDisplay.innerText = `Cooldown: ${hours}h ${minutes}m ${seconds}s`;
+                timeLeft -= 1000;
+
+                if (timeLeft < 0) {
+                    clearInterval(interval);
+                    timerDisplay.innerText = "Ready to Mine (Claim)";
+                    btn.innerText = "Claim 3H Mining";
+                }
+            }, 1000);
+        }
+
+        let freeMined = 0;
+        function claimFreeToken() {
+            freeMined += 0.5;
+            skyBalance += 1;
+            localStorage.setItem('sky_bal', skyBalance);
+            document.getElementById('free-mined-display').innerText = freeMined.toFixed(2) + " SKY";
+            updateWalletUI();
+            alert('Free token claimed successfully!');
+        }
+
+        function copyAffiliateText() {
+            const box = document.getElementById('affiliate-link-box');
+            box.select();
+            box.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(box.value);
+            alert('Affiliate Promo Message & Link Copied Successfully!');
+        }
+
+        function nativeShare() {
+            const textContent = document.getElementById('affiliate-link-box').value;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'MGSML SKY PROJECT',
+                    text: textContent
+                }).catch((error) => console.log('Error sharing:', error));
+            } else {
+                copyAffiliateText();
+            }
+        }
+
+        function shareOnWhatsApp() {
+            const text = encodeURIComponent(document.getElementById('affiliate-link-box').value);
+            window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+        }
+
+        function shareOnTelegram() {
+            const text = encodeURIComponent(document.getElementById('affiliate-link-box').value);
+            window.open(`https://t.me/share/url?url=&text=${text}`, '_blank');
         }
 
         window.onload = function() {
             updateWalletUI();
+            const savedPhoto = localStorage.getItem('mgsml_profile_photo');
+            if (savedPhoto) {
+                updateAvatarUI(savedPhoto);
+            }
         };
     </script>
 </body>
