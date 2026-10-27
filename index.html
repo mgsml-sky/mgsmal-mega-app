@@ -13,9 +13,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
-    <!-- EmailJS SDK for Sending Email OTP -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDfN-bzvkvDKH4zFMztm_PZVmRH01gL63Y",
@@ -893,8 +890,8 @@
         <div id="signin-view" class="view-section">
             <h3>🔐 Secure Sign In</h3>
             <div class="form-container">
-                <label style="font-size: 11px; color: var(--text-muted);">Registered Email or Mobile</label>
-                <input type="text" id="si-identifier" class="custom-input" placeholder="Email / Mobile Number">
+                <label style="font-size: 11px; color: var(--text-muted);">Registered Email, Mobile or User ID</label>
+                <input type="text" id="si-identifier" class="custom-input" placeholder="Email / Mobile / MGSML2000">
 
                 <label style="font-size: 11px; color: var(--text-muted);">Your Secret mPIN</label>
                 <input type="password" id="si-mpin" class="custom-input" placeholder="Enter mPIN" maxlength="6">
@@ -904,36 +901,27 @@
             </div>
         </div>
 
-        <!-- Sign Up View (No Password - Direct Email OTP Verification) -->
+        <!-- Sign Up View (Instant Auto ID, No OTP Hassle & English WhatsApp/Email Welcome Integration) -->
         <div id="signup-view" class="view-section">
             <h3>📝 New Account Registration</h3>
             <div class="form-container">
-                <label style="font-size: 11px; color: var(--text-muted);">Sponsor / Referral ID (Editable / Default: MGSML2000)</label>
+                <label style="font-size: 11px; color: var(--text-muted);">Sponsor / Referral ID (Default: MGSML2000)</label>
                 <input type="text" id="su-sponsor" class="custom-input" value="MGSML2000">
 
                 <label style="font-size: 11px; color: var(--text-muted);">Full Name</label>
                 <input type="text" id="su-name" class="custom-input" placeholder="Enter Full Name">
 
-                <label style="font-size: 11px; color: var(--text-muted);">Mobile Number (Saved to Profile)</label>
+                <label style="font-size: 11px; color: var(--text-muted);">Mobile Number</label>
                 <input type="tel" id="su-phone" class="custom-input" placeholder="Mobile Number">
 
-                <label style="font-size: 11px; color: var(--text-muted); margin-top:5px; display:block;">Email Address (Instant OTP Verification)</label>
-                <div class="verify-box">
-                    <input type="email" id="su-email" class="custom-input" placeholder="Enter Email Address">
-                    <button class="auth-btn" type="button" onclick="sendEmailOTP()">Send OTP</button>
-                </div>
-
-                <!-- OTP Input Box which appears after clicking Send OTP -->
-                <div id="email-otp-section" style="display:none; margin-top:8px;">
-                    <div class="verify-box">
-                        <input type="text" id="su-email-otp" class="custom-input" placeholder="Enter 4-Digit OTP Code">
-                        <button class="auth-btn signup" type="button" onclick="verifyEmailOTP()">Verify</button>
-                    </div>
-                </div>
-                <span id="email-verified-badge" class="verified-badge">✔ Email Verified Successfully</span>
+                <label style="font-size: 11px; color: var(--text-muted); margin-top:5px; display:block;">Email Address</label>
+                <input type="email" id="su-email" class="custom-input" placeholder="Email Address">
 
                 <label style="font-size: 11px; color: var(--text-muted); margin-top:5px; display:block;">WhatsApp Number</label>
                 <input type="tel" id="su-whatsapp" class="custom-input" placeholder="Enter WhatsApp Number">
+
+                <label style="font-size: 11px; color: var(--text-muted);">Create Login Password</label>
+                <input type="password" id="su-password" class="custom-input" placeholder="Create Login Password">
 
                 <label style="font-size: 11px; color: var(--text-muted);">Create 4/6 Digit mPIN</label>
                 <input type="password" id="su-mpin" class="custom-input" placeholder="Create Secure mPIN" maxlength="6">
@@ -962,8 +950,6 @@
         let adminLinks = {};
         let tokenSettings = { enabled: true, bonus: 100, genRates: [10, 5, 3, 2, 1, 1, 0.5, 0.5, 0.25, 0.25] };
         let adminPhoneOtpEnabled = false;
-        let generatedOtp = "";
-        let isEmailVerified = false;
         let currentUser = null;
 
         const masterButtonList = [
@@ -1212,7 +1198,6 @@
             roadmap.style.display = roadmap.style.display === 'block' ? 'none' : 'block';
         }
 
-        function openExternalLink(url) { window.location.href = url; }
         function toggleMenu() { document.getElementById('sideMenu').classList.toggle('open'); }
         
         function switchView(viewId) {
@@ -1325,40 +1310,7 @@
             switchView('home-view');
         }
 
-        // পাসওয়ার্ড ছাড়া সরাসরি ইমেইলে ওটিপি পাঠানোর ফাংশন
-        function sendEmailOTP() {
-            const email = document.getElementById('su-email').value.trim();
-            if (!email) {
-                alert('Please enter your Email Address first!');
-                return;
-            }
-
-            // ৪ ডিজিটের র্যান্ডম ওটিপি কোড তৈরি করা
-            generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
-
-            // ডেমো মোডে অ্যালার্টে ওটিপি কোডটি দেখাবে যাতে আপনি টেস্ট করতে পারেন
-            alert('OTP Generated (Demo mode): ' + generatedOtp);
-            document.getElementById('email-otp-section').style.display = 'block';
-        }
-
-        // ওটিপি ভেরিফাই করার ফাংশন
-        function verifyEmailOTP() {
-            const enteredOtp = document.getElementById('su-email-otp').value.trim();
-            if (!enteredOtp) {
-                alert('Please enter the OTP code!');
-                return;
-            }
-
-            if (enteredOtp === generatedOtp) {
-                isEmailVerified = true;
-                document.getElementById('email-otp-section').style.display = 'none';
-                document.getElementById('email-verified-badge').style.display = 'block';
-                alert('Email verified successfully!');
-            } else {
-                alert('Invalid OTP code! Please try again.');
-            }
-        }
-
+        // Real Auto ID Generation & Instant English WhatsApp Welcome Message Automation
         async function verifyAndRegister() {
             const name = document.getElementById('su-name').value.trim();
             const phone = document.getElementById('su-phone').value.trim();
@@ -1366,14 +1318,11 @@
             const whatsapp = document.getElementById('su-whatsapp').value.trim();
             const sponsorInput = document.getElementById('su-sponsor').value.trim();
             const sponsor = sponsorInput !== "" ? sponsorInput : "MGSML2000";
+            const password = document.getElementById('su-password').value.trim();
             const mpin = document.getElementById('su-mpin').value.trim();
 
-            if (!name || !phone || !email || !whatsapp || !mpin) {
+            if (!name || !phone || !email || !whatsapp || !password || !mpin) {
                 alert('Please fill in all required fields!');
-                return;
-            }
-            if (!isEmailVerified) {
-                alert('Please verify your email using the OTP sent to your inbox first!');
                 return;
             }
             if (mpin.length < 4) {
@@ -1402,6 +1351,7 @@
                     email: email,
                     whatsapp: whatsapp,
                     sponsor: sponsor,
+                    password: password,
                     mpin: mpin,
                     skyBalance: initialBonus,
                     photoUrl: "",
@@ -1412,8 +1362,20 @@
                 localStorage.setItem('mgsml_user_id', userId);
                 currentUser = newUser;
 
-                alert('Registration successful! You received ' + initialBonus + ' SKY tokens.');
+                // 100% English Welcome Message for WhatsApp
+                const welcomeText = `🎉 *WELCOME TO MGSML SKY PROJECT!* 🎉\n\nDear ${name},\nYour registration was successful! Here are your secure account details:\n\n🆔 *User ID:* ${userId}\n👤 *Name:* ${name}\n📞 *Mobile:* ${phone}\n💬 *WhatsApp:* ${whatsapp}\n📧 *Email:* ${email}\n🔑 *Password:* ${password}\n🔐 *mPIN:* ${mpin}\n🎁 *Welcome Bonus:* ${initialBonus} SKY Tokens\n\n🌐 *App Link:* https://mgsml-sky.github.io/mgsmal-mega-app/#${userId}\n\nPlease keep this information safe and secure!`;
+
+                // Auto WhatsApp redirect link
+                const cleanWaNumber = whatsapp.replace(/[^0-9]/g, '');
+                const waUrl = `https://api.whatsapp.com/send?phone=${cleanWaNumber}&text=${encodeURIComponent(welcomeText)}`;
+
+                alert(`✅ Registration Successful!\nYour ID: ${userId}\nBonus: ${initialBonus} SKY Tokens added.`);
+                
                 updateUIAfterLogin();
+
+                // Automatically open WhatsApp with English welcome message
+                window.location.href = waUrl;
+
             } catch (error) {
                 console.error("Error saving user:", error);
                 alert('Registration failed: ' + error.message);
